@@ -1,60 +1,118 @@
-# LOOPIEST - KEYFINDER Splash Screen
+# LOOPIEST - KEYFINDER
 
-Uma **Splash Screen (Tela Inicial)** elegante, minimalista e funcional desenvolvida em **Python 3** com **PySide6 (Qt 6)**.
+Uma aplicação desktop moderna em **Python 3** e **PySide6** para análise de áudio, acompanhada por um **Módulo Backend de Engenharia de Áudio** (`librosa` / `numpy`) para extração de **Chromagram** e ranqueamento de notas musicais em arquivos `.mp3` e `.wav`.
 
 ---
 
 ## 🎨 Características Visuais & Funcionalidades
 
-- **Estilo Dark/Neon Purple:** Palette inspirada em `#0A0A0E` (obsidian), `#2D0B5A` (roxo profundo) e `#8A2BE2` (roxo neon).
-- **Tag no Cabeçalho:** `@L8PIEST` centralizada na barra superior alinhada ao botão de fechar.
-- **Ícone da Barra de Tarefas:** Exibição da logo oficial (`assets/logo.png`) no ícone da barra de tarefas do Windows via `AppUserModelID`.
-- **Sem Bordas (Frameless):** Transparência de sistema, bordas arredondadas e sombra suave (`QGraphicsDropShadowEffect`).
-- **Movimentação Drag & Drop:** Arraste a janela livremente clicando no fundo.
-- **Botão Fechar Customizado (X):** Botão "✕" minimalista no canto superior direito com efeito hover neon.
-- **Logo Central:** Exibição da logo com redimensionamento suave e tratamento de erros (fallback embutido).
-- **Carregamento Assíncrono:** Multithreading com `QThread` para garantir animação de carregamento fluida a 60 FPS.
+- **Splash Screen Frameless:** Fundo Obsidian (`#0A0A0E`), acentos Roxo Neon (`#8A2BE2`), bordas arredondadas de 16px e sombra projetada.
+- **Tag no Cabeçalho:** `@L8PIEST` centralizada na barra superior.
+- **Ícone na Barra de Tarefas:** Exibição da logo oficial (`assets/logo.png`) no ícone da barra de tarefas do Windows via `AppUserModelID`.
+- **Recepção de Áudio (Drag & Drop):** Solte ou clique para selecionar arquivos de áudio `.mp3` e `.wav`.
+- **Análise Backend de Frequência:** Módulo DSP (`src/audio_analyzer.py`) para extração do perfil de croma (Chromagram) e ranking das notas musicais mais assíduas.
 
 ---
 
-## 📁 Estrutura de Pastas
+## 📁 Estrutura do Projeto
 
 ```text
 LOOPIEST - KEYSEARCH/
 │── assets/
-│   └── logo.png              # Imagem oficial da logo
+│   └── logo.png              # Logo oficial da aplicação
 │── styles/
-│   └── theme.qss             # Estilização QSS (Dark/Neon Purple)
+│   └── theme.qss             # Folha de estilos QSS (Dark/Neon Purple)
 │── src/
 │   ├── __init__.py
-│   ├── splash_screen.py      # Interface visual da Splash Screen (PySide6)
-│   └── worker.py             # Thread assíncrona de inicialização
-│── main.py                   # Ponto de entrada da aplicação
-│── skill.md                  # Padrões e diretrizes de desenvolvimento GUI
+│   ├── splash_screen.py      # Splash Screen com transição
+│   ├── main_window.py        # Janela Principal de Recepção de Áudio
+│   ├── drop_zone.py          # Componente Drag & Drop (.mp3, .wav)
+│   ├── worker.py             # Threads assíncronas (LoadingWorker e AnalysisWorker)
+│   └── audio_analyzer.py     # Backend MIR: Librosa, Chromagram & Ranking de Notas
+│── main.py                   # Ponto de entrada da GUI
+│── .gitignore
+│── skill.md
 │── requirements.txt          # Dependências do projeto
-└── README.md                 # Guia do projeto
+└── README.md                 # Guia e instruções completas
 ```
 
 ---
 
-## 🚀 Como Executar
+## 🚀 Guia de Instalação & Dependências
 
 ### 1. Requisitos Prévios
 - Python 3.10+ instalado.
 
-### 2. Instalar Dependências
+### 2. Instalar Dependências do Python
 No terminal, execute:
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Executar a Aplicação
+---
+
+## 🎼 Instalação do FFmpeg (Crucial para Decodificação de Arquivos MP3)
+
+A biblioteca `librosa` utiliza o **FFmpeg** / `audioread` para descompactar e carregar arquivos MP3 em memória. Se o FFmpeg não estiver presente no sistema, o carregamento de arquivos `.mp3` poderá gerar um erro de decodificação.
+
+### Windows (Escolha um dos métodos):
+
+- **Método A - Via Winget (Recomendado):**
+  Abra o Prompt de Comando ou PowerShell e execute:
+  ```powershell
+  winget install "FFmpeg (Essentials Build)"
+  ```
+  *Reinicie o terminal após a instalação.*
+
+- **Método B - Via Chocolatey:**
+  ```powershell
+  choco install ffmpeg
+  ```
+
+- **Método C - Instalação Manual:**
+  1. Baixe os binários em [gyan.dev/ffmpeg/builds](https://www.gyan.dev/ffmpeg/builds/).
+  2. Extraia o arquivo zip em uma pasta (ex: `C:\ffmpeg`).
+  3. Adicione a pasta `C:\ffmpeg\bin` às **Variáveis de Ambiente (PATH)** do Windows.
+
+### Linux (Ubuntu/Debian):
 ```bash
-python main.py
+sudo apt update
+sudo apt install ffmpeg
+```
+
+### macOS (Via Homebrew):
+```bash
+brew install ffmpeg
 ```
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
-- **Python 3.11**
-- **PySide6 / Qt 6 for Python**
+## 🧪 Uso do Módulo Backend de Análise (`audio_analyzer.py`)
+
+Você pode utilizar o script backend via linha de comando para analisar a distribuição de frequências e notas de qualquer arquivo de áudio:
+
+```bash
+python src/audio_analyzer.py <caminho_do_arquivo.mp3|.wav>
+```
+
+### Exemplo de Uso Programático no Python:
+
+```python
+from src.audio_analyzer import ranquear_notas
+
+# Analisa o arquivo e retorna o ranking das notas
+ranking = ranquear_notas("meu_audio.mp3")
+
+for item in ranking:
+    print(f"Nota: {item['nota']} | Relevância: {item['relevancia_pct']}% | Intensidade: {item['intensidade_media']}")
+```
+
+---
+
+## 🖥️ Executar a Interface Gráfica (GUI)
+
+Para iniciar a interface desktop com Splash Screen e Drag & Drop:
+
+```bash
+python main.py
+```
