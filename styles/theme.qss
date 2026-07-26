@@ -1,4 +1,4 @@
-/* QSS Style Sheet - LOOPIEST KeySearch Dark/Neon Purple Theme */
+/* QSS Style Sheet - LOOPIEST KeyFinder Dark/Neon Purple Theme */
 
 #MainContainer {
     background-color: #0A0A0E;
@@ -7,6 +7,14 @@
 }
 
 /* Header & Close Button */
+#HeaderTag {
+    color: #8A2BE2;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
 #CloseButton {
     background-color: transparent;
     color: #8E8EA0;

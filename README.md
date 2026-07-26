@@ -1,4 +1,4 @@
-# LOOPIEST - KEYSEARCH Splash Screen
+# LOOPIEST - KEYFINDER Splash Screen
 
 Uma **Splash Screen (Tela Inicial)** elegante, minimalista e funcional desenvolvida em **Python 3** com **PySide6 (Qt 6)**.
 
@@ -6,7 +6,9 @@ Uma **Splash Screen (Tela Inicial)** elegante, minimalista e funcional desenvolv
 
 ## 🎨 Características Visuais & Funcionalidades
 
-- **Estilo Dark/Neon Purple:** Palette inspirada em `#0A0A0E` ( obsidian), `#2D0B5A` (roxo profundo) e `#8A2BE2` (roxo neon).
+- **Estilo Dark/Neon Purple:** Palette inspirada em `#0A0A0E` (obsidian), `#2D0B5A` (roxo profundo) e `#8A2BE2` (roxo neon).
+- **Tag no Cabeçalho:** `@L8PIEST` centralizada na barra superior alinhada ao botão de fechar.
+- **Ícone da Barra de Tarefas:** Exibição da logo oficial (`assets/logo.png`) no ícone da barra de tarefas do Windows via `AppUserModelID`.
 - **Sem Bordas (Frameless):** Transparência de sistema, bordas arredondadas e sombra suave (`QGraphicsDropShadowEffect`).
 - **Movimentação Drag & Drop:** Arraste a janela livremente clicando no fundo.
 - **Botão Fechar Customizado (X):** Botão "✕" minimalista no canto superior direito com efeito hover neon.

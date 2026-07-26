@@ -50,10 +50,14 @@ class SplashScreen(QWidget):
         self.start_worker()
 
     def init_window(self):
-        """Configure frameless window properties and screen centering."""
+        """Configure frameless window properties, taskbar icon, and screen centering."""
         # Frameless and translucent background for rounded corners
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
+        # Set Window Taskbar Icon
+        if os.path.exists(self.logo_path):
+            self.setWindowIcon(QIcon(self.logo_path))
 
         # Fixed compact size
         self.resize(450, 550)
@@ -81,12 +85,23 @@ class SplashScreen(QWidget):
         container_layout.setSpacing(12)
 
         # -------------------------------------------------------------
-        # 1. Top Header Bar (Close Button 'X')
+        # 1. Top Header Bar (Centered @L8PIEST & Close Button 'X')
         # -------------------------------------------------------------
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.addStretch()
 
+        # Left dummy spacer matching close button width for exact centering
+        left_spacer = QWidget(self.main_container)
+        left_spacer.setFixedSize(28, 28)
+        header_layout.addWidget(left_spacer)
+
+        # Centered Tag Label
+        self.header_tag = QLabel("@L8PIEST", self.main_container)
+        self.header_tag.setObjectName("HeaderTag")
+        self.header_tag.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_layout.addWidget(self.header_tag, 1)
+
+        # Right Close Button
         self.btn_close = QPushButton("✕", self.main_container)
         self.btn_close.setObjectName("CloseButton")
         self.btn_close.setFixedSize(28, 28)
@@ -112,7 +127,7 @@ class SplashScreen(QWidget):
         self.title_label.setObjectName("AppTitle")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.subtitle_label = QLabel("K E Y S E A R C H", self.main_container)
+        self.subtitle_label = QLabel("K E Y F I N D E R", self.main_container)
         self.subtitle_label.setObjectName("AppSubtitle")
         self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
