@@ -15,6 +15,17 @@
     font-family: 'Segoe UI', Arial, sans-serif;
 }
 
+#HeaderTag a {
+    color: #8A2BE2;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+#HeaderTag a:hover {
+    color: #B066FE;
+    text-decoration: underline;
+}
+
 #CloseButton {
     background-color: transparent;
     color: #8E8EA0;
@@ -34,27 +45,6 @@
 #CloseButton:pressed {
     background-color: #2D0B5A;
     color: #E0E0E0;
-}
-
-#MinimizeButton {
-    background-color: transparent;
-    color: #8E8EA0;
-    font-size: 14px;
-    font-weight: bold;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    border: none;
-    border-radius: 12px;
-    padding: 0px;
-}
-
-#MinimizeButton:hover {
-    background-color: #2D0B5A;
-    color: #8A2BE2;
-}
-
-#MinimizeButton:pressed {
-    background-color: #14141E;
-    color: #FFFFFF;
 }
 
 /* App Title / Subtitle */
@@ -158,25 +148,88 @@ QProgressBar::chunk {
     font-family: 'Segoe UI', sans-serif;
 }
 
-/* Loaded File Info & Results */
-#FileNameLabel {
-    color: #FFFFFF;
-    font-size: 13px;
+/* Error Alert Box */
+#ErrorAlertBox {
+    background-color: #2D0A14;
+    border: 1px solid #EF4444;
+    border-radius: 10px;
+    color: #FCA5A5;
+    font-size: 12px;
     font-weight: bold;
-    background-color: #191428;
-    border: 1px solid #8A2BE2;
-    border-radius: 8px;
-    padding: 8px 12px;
+    padding: 10px 14px;
     font-family: 'Segoe UI', sans-serif;
 }
 
-#AnalysisResultLabel {
-    color: #34D399;
+/* Results Page Components */
+#KeyHighlightCard {
+    background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 #180B2D, stop:1 #0F0A1E);
+    border: 2px solid #8A2BE2;
+    border-radius: 14px;
+    padding: 16px;
+}
+
+#KeyTextHighlight {
+    color: #8A2BE2;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#RelativeKeyLabel {
+    color: #B066FE;
     font-size: 13px;
-    font-weight: bold;
-    background-color: #064E3B;
-    border: 1px solid #10B981;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #170F28;
+    border: 1px solid #3B166A;
     border-radius: 8px;
-    padding: 10px;
+    padding: 6px 12px;
+}
+
+#BpmLabel {
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#KeySubtext {
+    color: #A0A0B8;
+    font-size: 12px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#SectionTitle {
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#AudioMetadataBox {
+    background-color: #12121A;
+    border: 1px solid #23123B;
+    border-radius: 10px;
+    padding: 8px 12px;
+    color: #8E8EA0;
+    font-size: 11px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#NoteRowLabel {
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: bold;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#NoteRowPct {
+    color: #8A2BE2;
+    font-size: 12px;
+    font-weight: bold;
     font-family: 'Segoe UI', sans-serif;
 }

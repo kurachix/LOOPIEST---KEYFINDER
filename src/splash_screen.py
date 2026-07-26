@@ -1,11 +1,6 @@
 """
-Splash Screen GUI Module using PySide6.
-Features:
-- Frameless, translucent background with rounded corners and drop shadow.
-- Central logo display with exception/fallback handling.
-- Centered header tag '@L8PIEST' with close button.
-- Drag-and-drop window positioning.
-- Animated loading bar with smooth INICIAR button appearance upon completion.
+LOOPIEST KEYFINDER - Splash Screen Module.
+Minimalist frameless splash screen with purple dark aesthetic.
 """
 
 import os
@@ -21,9 +16,7 @@ from src.worker import LoadingWorker
 
 class SplashScreen(QWidget):
     """
-    Modern Minimalist Splash Screen with frameless window design,
-    custom purple/neon dark palette, and animated progress loading.
-    Emits start_requested when the user clicks 'INICIAR'.
+    Modern Minimalist Splash Screen with frameless window design.
     """
 
     start_requested = Signal()
@@ -36,24 +29,16 @@ class SplashScreen(QWidget):
         self.drag_position = QPoint()
         self.worker = None
 
-        # Setup Window Flags & Geometry
         self.init_window()
-
-        # Build UI Elements
         self.init_ui()
 
-        # Load QSS Stylesheet
         if self.qss_path and os.path.exists(self.qss_path):
             self.load_stylesheet(self.qss_path)
 
-        # Apply Drop Shadow Effect
         self.apply_drop_shadow()
-
-        # Start Worker Thread
         self.start_worker()
 
     def init_window(self):
-        """Configure frameless window properties, taskbar icon, and screen centering."""
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -70,7 +55,6 @@ class SplashScreen(QWidget):
             self.move(x, y)
 
     def init_ui(self):
-        """Construct all UI widgets and layout hierarchy."""
         self.main_container = QWidget(self)
         self.main_container.setObjectName("MainContainer")
 
@@ -82,9 +66,7 @@ class SplashScreen(QWidget):
         container_layout.setContentsMargins(20, 16, 20, 24)
         container_layout.setSpacing(12)
 
-        # -------------------------------------------------------------
-        # 1. Top Header Bar (Centered @L8PIEST & Close Button 'X')
-        # -------------------------------------------------------------
+        # Header Bar
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -92,9 +74,11 @@ class SplashScreen(QWidget):
         left_spacer.setFixedSize(28, 28)
         header_layout.addWidget(left_spacer)
 
-        self.header_tag = QLabel("@L8PIEST", self.main_container)
+        self.header_tag = QLabel('<a href="https://www.instagram.com/l8piest/" style="color: #8A2BE2; text-decoration: none;">@L8PIEST</a>', self.main_container)
         self.header_tag.setObjectName("HeaderTag")
         self.header_tag.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.header_tag.setOpenExternalLinks(True)
+        self.header_tag.setCursor(Qt.CursorShape.PointingHandCursor)
         header_layout.addWidget(self.header_tag, 1)
 
         self.btn_close = QPushButton("✕", self.main_container)
@@ -107,9 +91,7 @@ class SplashScreen(QWidget):
 
         container_layout.addLayout(header_layout)
 
-        # -------------------------------------------------------------
-        # 2. Central Logo & Title Section
-        # -------------------------------------------------------------
+        # Central Logo Section
         container_layout.addStretch(1)
 
         self.logo_label = QLabel(self.main_container)
@@ -129,9 +111,7 @@ class SplashScreen(QWidget):
         container_layout.addWidget(self.subtitle_label)
         container_layout.addStretch(1)
 
-        # -------------------------------------------------------------
-        # 3. Progress Section & INICIAR Button
-        # -------------------------------------------------------------
+        # Progress Section
         status_layout = QHBoxLayout()
         status_layout.setContentsMargins(4, 0, 4, 0)
 
@@ -147,7 +127,6 @@ class SplashScreen(QWidget):
 
         container_layout.addLayout(status_layout)
 
-        # Progress Bar
         self.progress_bar = QProgressBar(self.main_container)
         self.progress_bar.setFixedHeight(8)
         self.progress_bar.setRange(0, 100)
@@ -155,7 +134,6 @@ class SplashScreen(QWidget):
         self.progress_bar.setTextVisible(False)
         container_layout.addWidget(self.progress_bar)
 
-        # INICIAR Button (Initially hidden until progress reaches 100%)
         self.btn_start = QPushButton("INICIAR", self.main_container)
         self.btn_start.setObjectName("StartButton")
         self.btn_start.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -165,7 +143,6 @@ class SplashScreen(QWidget):
         container_layout.addWidget(self.btn_start)
 
     def load_logo_image(self):
-        """Safely load and display logo with exception handling and fallback."""
         try:
             if os.path.exists(self.logo_path):
                 pixmap = QPixmap(self.logo_path)
@@ -178,13 +155,11 @@ class SplashScreen(QWidget):
                     self.logo_label.setPixmap(scaled_pixmap)
                     return
 
-            self.render_fallback_logo("LOGO NÃO ENCONTRADA")
-        except Exception as err:
-            print(f"[Aviso] Falha ao carregar logo ({err}). Utilizando fallback.")
-            self.render_fallback_logo("ERRO LOGO")
+            self.render_fallback_logo("LOOPIEST")
+        except Exception:
+            self.render_fallback_logo("LOOPIEST")
 
     def render_fallback_logo(self, message: str):
-        """Render a stylized placeholder if logo fails to load."""
         self.logo_label.setText(f"❖\n{message}")
         self.logo_label.setStyleSheet("""
             color: #8A2BE2;
@@ -196,7 +171,6 @@ class SplashScreen(QWidget):
         """)
 
     def apply_drop_shadow(self):
-        """Apply drop shadow glow around container."""
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(25)
         shadow.setColor(QColor(138, 43, 226, 120))
@@ -204,15 +178,13 @@ class SplashScreen(QWidget):
         self.main_container.setGraphicsEffect(shadow)
 
     def load_stylesheet(self, qss_path: str):
-        """Read and apply QSS stylesheet."""
         try:
             with open(qss_path, "r", encoding="utf-8") as f:
                 self.setStyleSheet(f.read())
         except Exception as err:
-            print(f"[Erro] Não foi possível carregar arquivo QSS ({err}).")
+            print(f"[Erro] Falha ao carregar QSS ({err}).")
 
     def start_worker(self):
-        """Instantiate and start startup background thread."""
         self.worker = LoadingWorker(self)
         self.worker.progress_changed.connect(self.update_progress)
         self.worker.status_changed.connect(self.update_status)
@@ -220,34 +192,28 @@ class SplashScreen(QWidget):
         self.worker.start()
 
     def update_progress(self, value: int):
-        """Update progress bar value and percentage text."""
         self.progress_bar.setValue(value)
         self.percentage_label.setText(f"{value}%")
 
     def update_status(self, text: str):
-        """Update status description text."""
         self.status_label.setText(text)
 
     def on_loading_complete(self):
-        """Show INICIAR button smoothly when loading is 100% complete."""
-        self.status_label.setText("Sistema carregado com sucesso!")
+        self.status_label.setText("Sistema pronto!")
         self.percentage_label.hide()
         self.progress_bar.hide()
         self.btn_start.show()
 
     def on_start_clicked(self):
-        """Handle click on INICIAR button."""
         self.start_requested.emit()
         self.close()
 
     def close_application(self):
-        """Clean shutdown handler."""
         if self.worker and self.worker.isRunning():
             self.worker.stop()
             self.worker.wait(1000)
         self.close()
 
-    # Drag and Drop Window Movement
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
