@@ -6,7 +6,7 @@
     border-radius: 16px;
 }
 
-/* Header & Close Button */
+/* Header & Action Buttons */
 #HeaderTag {
     color: #8A2BE2;
     font-size: 11px;
@@ -34,6 +34,27 @@
 #CloseButton:pressed {
     background-color: #2D0B5A;
     color: #E0E0E0;
+}
+
+#MinimizeButton {
+    background-color: transparent;
+    color: #8E8EA0;
+    font-size: 14px;
+    font-weight: bold;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    border: none;
+    border-radius: 12px;
+    padding: 0px;
+}
+
+#MinimizeButton:hover {
+    background-color: #2D0B5A;
+    color: #8A2BE2;
+}
+
+#MinimizeButton:pressed {
+    background-color: #14141E;
+    color: #FFFFFF;
 }
 
 /* App Title / Subtitle */
@@ -78,4 +99,84 @@ QProgressBar {
 QProgressBar::chunk {
     background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #4A00E0, stop:0.5 #8A2BE2, stop:1 #B066FE);
     border-radius: 5px;
+}
+
+/* Start Button in Splash Screen */
+#StartButton {
+    background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #2D0B5A, stop:1 #8A2BE2);
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    font-family: 'Segoe UI', sans-serif;
+    border: 1px solid #8A2BE2;
+    border-radius: 10px;
+    padding: 10px 20px;
+}
+
+#StartButton:hover {
+    background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #8A2BE2, stop:1 #A044FE);
+    border: 1px solid #FFFFFF;
+}
+
+#StartButton:pressed {
+    background-color: #2D0B5A;
+}
+
+/* Drag & Drop Zone Component */
+#DropZone {
+    background-color: #111118;
+    border: 2px dashed #4A1584;
+    border-radius: 14px;
+}
+
+#DropZone:hover {
+    background-color: #161424;
+    border: 2px dashed #8A2BE2;
+}
+
+#DropZoneActive {
+    background-color: #221538;
+    border: 2px dashed #B066FE;
+}
+
+#DropZoneIcon {
+    font-size: 38px;
+    color: #8A2BE2;
+}
+
+#DropZoneTitle {
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#DropZoneSubtitle {
+    color: #7E7E98;
+    font-size: 11px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Loaded File Info & Results */
+#FileNameLabel {
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: bold;
+    background-color: #191428;
+    border: 1px solid #8A2BE2;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#AnalysisResultLabel {
+    color: #34D399;
+    font-size: 13px;
+    font-weight: bold;
+    background-color: #064E3B;
+    border: 1px solid #10B981;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: 'Segoe UI', sans-serif;
 }
