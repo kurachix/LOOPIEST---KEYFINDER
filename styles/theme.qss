@@ -1,0 +1,73 @@
+/* QSS Style Sheet - LOOPIEST KeySearch Dark/Neon Purple Theme */
+
+#MainContainer {
+    background-color: #0A0A0E;
+    border: 1px solid #2D0B5A;
+    border-radius: 16px;
+}
+
+/* Header & Close Button */
+#CloseButton {
+    background-color: transparent;
+    color: #8E8EA0;
+    font-size: 14px;
+    font-weight: bold;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    border: none;
+    border-radius: 12px;
+    padding: 0px;
+}
+
+#CloseButton:hover {
+    background-color: #8A2BE2;
+    color: #FFFFFF;
+}
+
+#CloseButton:pressed {
+    background-color: #2D0B5A;
+    color: #E0E0E0;
+}
+
+/* App Title / Subtitle */
+#AppTitle {
+    color: #FFFFFF;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#AppSubtitle {
+    color: #8A2BE2;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Status & Progress Labels */
+#StatusLabel {
+    color: #A0A0B8;
+    font-size: 12px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#PercentageLabel {
+    color: #8A2BE2;
+    font-size: 13px;
+    font-weight: bold;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Progress Bar */
+QProgressBar {
+    background-color: #14141E;
+    border: 1px solid #23123B;
+    border-radius: 6px;
+    text-align: center;
+}
+
+QProgressBar::chunk {
+    background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #4A00E0, stop:0.5 #8A2BE2, stop:1 #B066FE);
+    border-radius: 5px;
+}
