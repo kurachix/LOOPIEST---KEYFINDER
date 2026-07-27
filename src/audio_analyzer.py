@@ -1,10 +1,11 @@
 """
 Engine de Processamento e Análise de Frequência e Tempo de Áudio.
-Módulo de extração de croma, classificação tonal e cálculo preciso de BPM.
+Módulo de extração de croma, classificação tonal e Motor de Consenso de BPM.
 """
 
 import os
 import sys
+import math
 from typing import List, Dict, Tuple, Any
 
 PITCH_CLASSES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
@@ -42,43 +43,154 @@ def extrair_chromagram(y, sr: int):
     return chroma
 
 
-def calcular_bpm(y, sr: int) -> int:
+def _estimar_bpm_motor_a(y, sr: int) -> float:
+    """Motor A: Estimativa baseada em Onset Strength + STFT (Librosa)."""
+    import librosa
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+    tempo_a = librosa.beat.beat_track(
+        y=y,
+        sr=sr,
+        onset_envelope=onset_env,
+        start_bpm=120.0,
+        tightness=100
+    )[0]
+    if hasattr(tempo_a, 'item'):
+        return float(tempo_a.item(0))
+    return float(tempo_a)
+
+
+def _estimar_bpm_motor_b(y, sr: int) -> Tuple[float, float]:
     """
-    Calcula o BPM (Beats Per Minute) do sinal de áudio com alta precisão,
-    aplicando restrições de janela e correção de oitava rítmica (70-160 BPM).
+    Motor B: Estimativa rítmica baseada em Aubio (se disponível) ou Tempogram Autocorrelation.
+    Retorna a tupla (bpm_est, confianca_score).
     """
     import librosa
     import numpy as np
 
+    # 1. Tenta utilizar Aubio caso a biblioteca esteja presente no sistema
     try:
-        # Envelope de força de início de notas (onset strength)
-        onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+        import aubio
+        win_s = 1024
+        hop_s = 512
+        samplerate = sr
+        o = aubio.tempo("default", win_s, hop_s, samplerate)
 
-        # Estimativa de tempo com ponto de partida priorizado em 120.0 BPM
-        tempo_array, _ = librosa.beat.beat_track(
-            y=y,
-            sr=sr,
-            onset_envelope=onset_env,
-            start_bpm=120.0,
-            tightness=100
-        )
+        beats = []
+        for i in range(0, len(y) - hop_s, hop_s):
+            samples = y[i:i + hop_s].astype(np.float32)
+            is_beat = o(samples)
+            if is_beat[0]:
+                beats.append(o.get_last_s())
 
-        # Trata o retorno como escalar float
-        if isinstance(tempo_array, np.ndarray):
-            tempo = float(tempo_array.item(0)) if tempo_array.size > 0 else 120.0
+        if len(beats) > 1:
+            intervals = np.diff(beats)
+            intervals = intervals[intervals > 0.2]
+            if len(intervals) > 0:
+                bpm_aubio = 60.0 / float(np.median(intervals))
+                confidence = float(o.get_confidence())
+                return bpm_aubio, confidence
+    except Exception:
+        pass
+
+    # 2. Motor B Alternativo: Tempogram Autocorrelation via Librosa
+    try:
+        tempogram = librosa.feature.tempogram(y=y, sr=sr)
+        ac_mean = np.mean(tempogram, axis=1)
+        bpms = librosa.fourier_tempo_frequencies(sr=sr, win_length=tempogram.shape[0])
+
+        valid_idx = np.where((bpms >= 50) & (bpms <= 200))[0]
+        if len(valid_idx) > 0:
+            best_idx = valid_idx[np.argmax(ac_mean[valid_idx])]
+            tempo_b = float(bpms[best_idx])
+            confidence_b = float(ac_mean[best_idx])
+            return tempo_b, confidence_b
+    except Exception:
+        pass
+
+    return 0.0, 0.0
+
+
+def calcular_bpm_consenso(y, sr: int) -> int:
+    """
+    Motor de Consenso de BPM com Dupla Análise (Motor A + Motor B),
+    Alinhamento de Oitava Rítmica (Metade/Dobro) e Heurística de Desempate.
+    """
+    # 1. Extração Motor A (Principal)
+    try:
+        bpm_a = _estimar_bpm_motor_a(y, sr)
+    except Exception:
+        bpm_a = 120.0
+
+    # 2. Extração Motor B (Secundário com Fallback Silencioso)
+    bpm_b, conf_b = 0.0, 0.0
+    try:
+        bpm_b, conf_b = _estimar_bpm_motor_b(y, sr)
+    except Exception:
+        bpm_b = 0.0
+
+    # Fallback caso Motor B falhar ou retornar zero
+    if bpm_b <= 0 or math.isnan(bpm_b):
+        if bpm_a < 70.0: bpm_a *= 2.0
+        elif bpm_a > 165.0: bpm_a /= 2.0
+        return max(60, min(200, int(round(bpm_a))))
+
+    # 3. Correção de Oitava Rítmica (Metade / Dobro entre Motor A e Motor B)
+    if bpm_a > 0:
+        ratio = bpm_b / bpm_a
+        if 1.8 <= ratio <= 2.2:
+            # Motor B é o dobro do Motor A
+            bpm_a *= 2.0
+        elif 0.45 <= ratio <= 0.55:
+            # Motor B é a metade do Motor A
+            bpm_b *= 2.0
+
+    # Normalização de faixa rítmica individual (70 a 165 BPM)
+    if bpm_a < 70.0: bpm_a *= 2.0
+    elif bpm_a > 165.0: bpm_a /= 2.0
+
+    if bpm_b < 70.0: bpm_b *= 2.0
+    elif bpm_b > 165.0: bpm_b /= 2.0
+
+    # 4. Heurística de Comparação (Core do Consenso)
+    diff = abs(bpm_a - bpm_b)
+
+    if diff <= 3.0:
+        # Caso 1: Diferença pequena (<= 3 BPM) -> Média entre os dois valores
+        bpm_final = (bpm_a + bpm_b) / 2.0
+    else:
+        # Caso 2: Diferença grande (> 3 BPM) -> Desempate por confiança do transiente
+        if conf_b > 0.4:
+            bpm_final = bpm_b
         else:
-            tempo = float(tempo_array)
+            bpm_final = bpm_a
 
-        # Correção Heurística de Oitava Rítmica (Evita oitava dividida/dobrada)
-        if tempo < 70.0:
-            tempo *= 2.0
-        elif tempo > 165.0:
-            tempo /= 2.0
+    return max(60, min(200, int(round(bpm_final))))
 
-        return max(60, min(200, int(round(tempo))))
+
+def calcular_bpm(y, sr: int) -> int:
+    """Função de entrada pública para o cálculo de BPM por consenso."""
+    return calcular_bpm_consenso(y, sr)
+
+
+def estimar_afinacao_hz(y, sr: int) -> int:
+    """
+    Estima a frequência de afinação base (Reference Tuning Hz, ex: 440 Hz, 432 Hz)
+    utilizando a estimativa de desvio espectral da nota Lá (A4).
+    """
+    import librosa
+
+    try:
+        # Estima o desvio de afinação em semitons relativos ao padrão 440.0 Hz
+        tuning_offset = librosa.estimate_tuning(y=y, sr=sr)
+        
+        # Fórmula: f = 440.0 * (2 ** (desvio / 12))
+        freq_hz = 440.0 * (2.0 ** (float(tuning_offset) / 12.0))
+        
+        tuning_int = int(round(freq_hz))
+        return max(400, min(480, tuning_int))
     except Exception as e:
-        print(f"[Aviso BPM]: {e}")
-        return 120  # Fallback seguro
+        print(f"[Aviso Tuning]: {e}")
+        return 440
 
 
 def ranquear_notas(caminho_arquivo: str, top_n: int = 12) -> List[Dict[str, Any]]:
@@ -112,17 +224,17 @@ def ranquear_notas(caminho_arquivo: str, top_n: int = 12) -> List[Dict[str, Any]
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("LOOPIEST KEYFINDER - Analisador Tonal & Tempo")
+        print("LOOPIEST KEYFINDER - Analisador Tonal & Motor de Consenso de BPM")
         print("Uso: python src/audio_analyzer.py <caminho_do_arquivo.mp3|.wav>")
         sys.exit(0)
 
     try:
         y, sr = carregar_audio(sys.argv[1])
-        bpm = calcular_bpm(y, sr)
+        bpm = calcular_bpm_consenso(y, sr)
         ranking = ranquear_notas(sys.argv[1])
 
         print("\n--- RESULTADO DE ANÁLISE ---")
-        print(f"♩ BPM Calculado: {bpm}")
+        print(f"BPM Consenso: {bpm}")
         from src.key_detector import descobrir_tom
         tom = descobrir_tom(ranking)
         print(f"{tom}")

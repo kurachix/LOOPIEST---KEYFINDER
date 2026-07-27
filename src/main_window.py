@@ -6,12 +6,12 @@ Provides sleek commercial UI with Page Navigation (QStackedWidget):
 """
 
 import os
-from PySide6.QtCore import Qt, QPoint
-from PySide6.QtGui import QPixmap, QColor, QIcon, QGuiApplication
+from PySide6.QtCore import Qt, QPoint, QThread, Signal, Slot
+from PySide6.QtGui import QPixmap, QColor, QIcon, QGuiApplication, QAction
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QProgressBar, QGraphicsDropShadowEffect,
-    QStackedWidget, QFrame
+    QStackedWidget, QFrame, QMenu
 )
 
 from src.drop_zone import DropZoneWidget
@@ -228,6 +228,11 @@ class MainWindow(QWidget):
         self.bpm_label.setObjectName("BpmLabel")
         self.bpm_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        # Reference Tuning Display (Afinação Hz)
+        self.tuning_label = QLabel("Tuning: -- Hz", self.key_card)
+        self.tuning_label.setObjectName("TuningLabel")
+        self.tuning_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
         # Secondary Alternative Key (Shown only if high ambiguity exists)
         self.secondary_key_label = QLabel("", self.key_card)
         self.secondary_key_label.setObjectName("KeySubtext")
@@ -238,9 +243,46 @@ class MainWindow(QWidget):
         key_layout.addWidget(self.key_highlight_label)
         key_layout.addWidget(self.relative_key_label)
         key_layout.addWidget(self.bpm_label)
+        key_layout.addWidget(self.tuning_label)
         key_layout.addWidget(self.secondary_key_label)
 
         layout.addWidget(self.key_card)
+
+        # Botão de Renomeação de Arquivo com Menu Suspenso (Dropdown)
+        self.btn_rename = QPushButton("Adicionar informações ao arquivo", self.results_page)
+        self.btn_rename.setObjectName("RenameButton")
+        self.btn_rename.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.rename_menu = QMenu(self.btn_rename)
+        
+        # Opção 1: "Adicionar ambos" (Destaque visual purpúreo em negrito)
+        action_ambos = QAction("✦ Adicionar ambos (BPM + TOM)", self.rename_menu)
+        font_bold = action_ambos.font()
+        font_bold.setBold(True)
+        action_ambos.setFont(font_bold)
+        action_ambos.triggered.connect(lambda: self.executar_renomeacao("ambos"))
+
+        # Opção 2: "Adicionar BPM"
+        action_bpm = QAction("Adicionar BPM", self.rename_menu)
+        action_bpm.triggered.connect(lambda: self.executar_renomeacao("bpm"))
+
+        # Opção 3: "Adicionar TOM"
+        action_tom = QAction("Adicionar TOM", self.rename_menu)
+        action_tom.triggered.connect(lambda: self.executar_renomeacao("tom"))
+
+        self.rename_menu.addAction(action_ambos)
+        self.rename_menu.addAction(action_bpm)
+        self.rename_menu.addAction(action_tom)
+
+        self.btn_rename.setMenu(self.rename_menu)
+
+        rename_container = QWidget(self.results_page)
+        rename_layout = QHBoxLayout(rename_container)
+        rename_layout.setContentsMargins(0, 5, 0, 15)
+        rename_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        rename_layout.addWidget(self.btn_rename)
+
+        layout.addWidget(rename_container)
 
         # 2. Streamlined File Metadata Box (Arquivo e Duração em min/seg)
         self.metadata_label = QLabel("", page)
@@ -327,6 +369,11 @@ class MainWindow(QWidget):
         self.bpm_label.setText(f"BPM: {bpm_val}")
         self.bpm_label.show()
 
+        # Tuning Hz Display
+        tuning_val = result.get("tuning_hz", 440)
+        self.tuning_label.setText(f"Tuning: {tuning_val} Hz")
+        self.tuning_label.show()
+
         # Check Ambiguity: Display a 2nd result ONLY if there is high ambiguity between top 2 candidates
         top_candidatos = result.get("top_candidatos", [])
         if len(top_candidatos) >= 2:
@@ -343,6 +390,13 @@ class MainWindow(QWidget):
             self.secondary_key_label.hide()
 
         # Clean File & Formatted Duration (e.g. 3m 05s)
+        self.current_result = result
+        self.current_file_path = result.get("file_path", "")
+
+        # Reseta o botão de renomeação para novos arquivos carregados
+        self.btn_rename.setText("Adicionar informações ao arquivo")
+        self.btn_rename.setEnabled(True)
+
         file_name = result.get("file_name", "Desconhecido")
         duration_sec = result.get("duration_sec", 0.0)
         formatted_duration = formatar_duracao(duration_sec)
@@ -391,6 +445,63 @@ class MainWindow(QWidget):
         self.status_label.hide()
         self.progress_bar.hide()
         self.go_to_results_page(result)
+
+    def executar_renomeacao(self, opcao: str):
+        """
+        Renomeia o arquivo de áudio no sistema com as informações musicais selecionadas.
+        """
+        if not hasattr(self, 'current_file_path') or not self.current_file_path:
+            return
+
+        orig_path = self.current_file_path
+        if not os.path.exists(orig_path):
+            self.show_error_alert("Arquivo não encontrado no disco.")
+            return
+
+        folder = os.path.dirname(orig_path)
+        filename = os.path.basename(orig_path)
+        stem, ext = os.path.splitext(filename)
+
+        bpm_val = self.current_result.get("bpm", "--")
+        key_val = self.current_result.get("key", "")
+        rel_key_val = self.current_result.get("relative_key", "")
+
+        if opcao == "ambos":
+            sufixo = f" - {bpm_val}bpm {key_val}"
+        elif opcao == "bpm":
+            sufixo = f" - {bpm_val}bpm"
+        elif opcao == "tom":
+            if rel_key_val:
+                sufixo = f" - {key_val} (Rel: {rel_key_val})"
+            else:
+                sufixo = f" - {key_val}"
+        else:
+            return
+
+        novo_nome = f"{stem}{sufixo}{ext}"
+        novo_caminho = os.path.join(folder, novo_nome)
+
+        if orig_path == novo_caminho:
+            return
+
+        try:
+            os.rename(orig_path, novo_caminho)
+            self.current_file_path = novo_caminho
+            self.current_result["file_path"] = novo_caminho
+            self.current_result["file_name"] = novo_nome
+
+            # Atualiza os metadados na interface
+            from src.worker import formatar_duracao
+            dur_str = formatar_duracao(self.current_result.get("duration_sec", 0.0))
+            self.metadata_label.setText(f"Arquivo: {novo_nome}   |   Duração: {dur_str}")
+
+            # Feedback Visual de Sucesso
+            self.btn_rename.setText("✔ Arquivo Renomeado!")
+            self.btn_rename.setEnabled(False)
+        except PermissionError:
+            self.show_error_alert("Erro: Feche o arquivo em outros programas")
+        except Exception as err:
+            self.show_error_alert(f"Erro ao renomear: {err}")
 
     def show_error_alert(self, message: str):
         """Display visual red alert box on interface if file or processing fails."""

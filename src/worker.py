@@ -88,7 +88,7 @@ class AnalysisWorker(QThread):
                 return
 
             try:
-                from src.audio_analyzer import carregar_audio, ranquear_notas, calcular_bpm
+                from src.audio_analyzer import carregar_audio, ranquear_notas, calcular_bpm, estimar_afinacao_hz
                 from src.key_detector import descobrir_tom, obter_escala_relativa
 
                 self.status_changed.emit("Analisando estrutura de frequências & tempo...")
@@ -101,10 +101,11 @@ class AnalysisWorker(QThread):
                     self.analysis_failed.emit("A duração do arquivo de áudio é muito curta para análise.")
                     return
 
-                self.status_changed.emit("Calculando tonalidade e BPM...")
+                self.status_changed.emit("Calculando tonalidade, BPM & afinação...")
                 self.progress_changed.emit(75)
 
                 bpm = calcular_bpm(y, sr)
+                tuning_hz = estimar_afinacao_hz(y, sr)
                 ranking_notas = ranquear_notas(self.file_path, top_n=8)
                 key_result, top_candidatos = descobrir_tom(ranking_notas, detalhado=True)
                 detected_key = key_result.replace("Key: ", "")
@@ -122,6 +123,7 @@ class AnalysisWorker(QThread):
                     "duration_sec": round(duration_sec, 2),
                     "sample_rate": sr,
                     "bpm": bpm,
+                    "tuning_hz": tuning_hz,
                     "key": detected_key,
                     "relative_key": relative_key,
                     "full_key_string": key_result,
@@ -151,6 +153,7 @@ class AnalysisWorker(QThread):
                     "duration_sec": 184.5,
                     "sample_rate": 22050,
                     "bpm": 124,
+                    "tuning_hz": 440,
                     "key": "F# Minor",
                     "relative_key": "A Major",
                     "full_key_string": "Key: F# Minor",

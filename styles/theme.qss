@@ -196,6 +196,59 @@ QProgressBar::chunk {
     font-family: 'Segoe UI', sans-serif;
 }
 
+#TuningLabel {
+    color: #C084FC;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#RenameButton {
+    background-color: #170F28;
+    color: #B066FE;
+    border: 1px solid #3B166A;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Segoe UI', sans-serif;
+    min-width: 240px;
+}
+
+#RenameButton:hover {
+    background-color: #2D0B5A;
+    color: #FFFFFF;
+    border-color: #8A2BE2;
+}
+
+#RenameButton:disabled {
+    background-color: #120C1F;
+    color: #00E676;
+    border-color: #1E3A29;
+}
+
+QMenu {
+    background-color: #120C1F;
+    color: #FFFFFF;
+    border: 1px solid #3B166A;
+    border-radius: 8px;
+    padding: 6px;
+}
+
+QMenu::item {
+    padding: 8px 18px;
+    border-radius: 4px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 12px;
+    color: #E0E0F0;
+}
+
+QMenu::item:selected {
+    background-color: #2D0B5A;
+    color: #B066FE;
+}
+
 #KeySubtext {
     color: #A0A0B8;
     font-size: 12px;
