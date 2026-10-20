@@ -264,13 +264,8 @@ class MainWindow(QWidget):
 
         self.rename_menu = QMenu(self.btn_rename)
         
-        # Opção 1: "Adicionar ambos" (Destaque visual purpúreo em negrito)
+        # Opção 1: "Adicionar ambos" (Destaque visual com marcador ✦)
         action_ambos = QAction("✦ Adicionar ambos (BPM + TOM)", self.rename_menu)
-        font_bold = action_ambos.font()
-        if font_bold.pointSize() <= 0:
-            font_bold.setPointSize(10)
-        font_bold.setBold(True)
-        action_ambos.setFont(font_bold)
         action_ambos.triggered.connect(lambda: self.executar_renomeacao("ambos"))
 
         # Opção 2: "Adicionar BPM"

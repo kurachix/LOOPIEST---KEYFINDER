@@ -1,15 +1,18 @@
 """
 LOOPIEST KEYFINDER - Authentication & Passkey Engine.
 Implements a 5-tier cryptographic and mathematical sequence validation system
-for offline, zero-database active passkey verification.
+and encrypted binary storage (.dat) in C:\\loopiest\\acess.
 """
 
 import os
+import sys
 import re
 import hashlib
 import random
 import string
 from typing import Tuple, Dict, List, Optional
+
+from src.crypto import encrypt_data, decrypt_data, decrypt_file
 
 # Alphanumeric character set for passkey blocks
 PASSKEY_CHARS = string.ascii_uppercase + string.digits
@@ -20,24 +23,34 @@ PRIME_WEIGHTS = [3, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43]
 # Internal cryptographic salt for payload signature
 AUTH_SALT = "LOOPIEST-KEYFINDER-V1-SIG"
 
-import sys
-
 # Passkey regex pattern: LPST-XXXX-XXXX-XXXX-XXXX
 PASSKEY_REGEX = re.compile(r"^LPST-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$")
-
-# Default license file name saved in software root folder on C:
-LICENSE_FILENAME = "license.key"
-ALT_LICENSE_FILENAMES = ["license.key", "license.txt", ".license"]
 
 
 def get_app_root_dir() -> str:
     """
-    Returns the absolute path to the software root folder on C:.
+    Returns the absolute path to the software root folder.
     Works both in development mode and compiled standalone executable (.exe).
     """
     if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def get_root_access_dir() -> str:
+    """
+    Returns the root access directory on the system drive: C:\\loopiest\\acess.
+    Ensures directory exists with proper permissions.
+    """
+    system_drive = os.environ.get("SystemDrive", "C:")
+    access_dir = os.path.join(system_drive + os.sep, "loopiest", "acess")
+    try:
+        os.makedirs(access_dir, exist_ok=True)
+        return access_dir
+    except Exception:
+        fallback_dir = os.path.join(os.path.expanduser("~"), ".loopiest", "acess")
+        os.makedirs(fallback_dir, exist_ok=True)
+        return fallback_dir
 
 
 def validate_passkey(key: str) -> Tuple[bool, str, Dict[str, bool]]:
@@ -75,11 +88,9 @@ def validate_passkey(key: str) -> Tuple[bool, str, Dict[str, bool]]:
     checks["format"] = True
 
     # --- VERIFICAÇÃO 2: Paridade Cruzada e Módulo dos Blocos Iniciais ---
-    # Sub-regra B1: Soma ASCII % 13 == 5
     if sum(ord(c) for c in b1) % 13 != 5:
         return False, "Falha na congruência modular do Bloco 1.", checks
 
-    # Sub-regra B2: Paridade alternada (0+2 par, 1+3 ímpar)
     if (ord(b2[0]) + ord(b2[2])) % 2 != 0:
         return False, "Falha na paridade de posições do Bloco 2.", checks
 
@@ -117,13 +128,11 @@ def validate_passkey(key: str) -> Tuple[bool, str, Dict[str, bool]]:
 
 
 def generate_single_passkey() -> str:
-    """
-    Generates a single valid passkey that strictly satisfies all 5 verification layers.
-    """
+    """Generates a single valid passkey that strictly satisfies all 5 verification layers."""
     inv_w11 = pow(PRIME_WEIGHTS[11], -1, 97)
 
     while True:
-        # 1. Generate B1 satisfying sum % 13 == 5
+        # 1. B1 satisfying sum % 13 == 5
         b1_prefix = [random.choice(PASSKEY_CHARS) for _ in range(3)]
         rem = (5 - sum(ord(c) for c in b1_prefix)) % 13
         valid_b1_4 = [c for c in PASSKEY_CHARS if ord(c) % 13 == rem]
@@ -131,7 +140,7 @@ def generate_single_passkey() -> str:
             continue
         b1 = "".join(b1_prefix) + random.choice(valid_b1_4)
 
-        # 2. Generate B2 satisfying cross-parity rules
+        # 2. B2 satisfying cross-parity rules
         b2_0 = random.choice(PASSKEY_CHARS)
         valid_b2_2 = [c for c in PASSKEY_CHARS if (ord(c) + ord(b2_0)) % 2 == 0]
         b2_2 = random.choice(valid_b2_2)
@@ -142,7 +151,7 @@ def generate_single_passkey() -> str:
 
         b2 = b2_0 + b2_1 + b2_2 + b2_3
 
-        # 3. Generate B3 satisfying weighted sum % 97 == 42
+        # 3. B3 satisfying weighted sum % 97 == 42
         b3_prefix = [random.choice(PASSKEY_CHARS) for _ in range(3)]
         partial_sum = sum(
             ord(c) * PRIME_WEIGHTS[i]
@@ -154,7 +163,7 @@ def generate_single_passkey() -> str:
             continue
         b3 = "".join(b3_prefix) + random.choice(valid_b3_4)
 
-        # 4. Generate B4 using SHA-256 payload signature
+        # 4. B4 using SHA-256 payload signature
         payload = f"{b1}-{b2}-{b3}:{AUTH_SALT}"
         digest = hashlib.sha256(payload.encode("utf-8")).hexdigest().upper()
         b4 = digest[:2] + digest[-2:]
@@ -168,160 +177,223 @@ def generate_single_passkey() -> str:
 
 
 def generate_passkeys(count: int = 500) -> List[str]:
-    """
-    Generates a specified number of unique, valid passkeys.
-    """
+    """Generates a specified number of unique, valid passkeys."""
     keys = set()
     while len(keys) < count:
         key = generate_single_passkey()
-        # Double check validity
         valid, _, _ = validate_passkey(key)
         if valid:
             keys.add(key)
     return sorted(list(keys))
 
 
-def ensure_pass_file(filepath: str = "pass.txt", count: int = 500) -> str:
+# ==============================================================================
+# Armazenamento Criptografado em C:\loopiest\acess
+# ==============================================================================
+
+VAULT_PASSKEYS_FILENAME = "pass.dat"
+VAULT_USER_FILENAME = "user.dat"
+VAULT_LICENSE_FILENAME = "license.dat"
+
+
+def ensure_pass_vault(count: int = 500) -> str:
     """
-    Ensures that pass.txt exists with at least `count` valid keys.
-    If the file does not exist or has fewer keys, it generates them.
+    Garante a presença do arquivo criptografado pass.dat em C:\\loopiest\\acess.
+    Se não existir, gera as chaves e criptografa em formato binário autenticado.
     """
-    need_generation = True
-    if os.path.exists(filepath):
+    access_dir = get_root_access_dir()
+    vault_path = os.path.join(access_dir, VAULT_PASSKEYS_FILENAME)
+
+    # 1. Verifica se já existe um pass.dat válido
+    if os.path.exists(vault_path):
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                lines = [line.strip() for line in f if line.strip() and not line.startswith("#")]
-            if len(lines) >= count:
-                need_generation = False
+            decrypted = decrypt_file(vault_path)
+            if decrypted:
+                lines = [l.strip() for l in decrypted.decode("utf-8").splitlines() if l.strip()]
+                if len(lines) >= count:
+                    return vault_path
         except Exception:
-            need_generation = True
+            pass
 
-    if need_generation:
-        keys = generate_passkeys(count)
-        with open(filepath, "w", encoding="utf-8") as f:
-            for key in keys:
-                f.write(f"{key}\n")
-        print(f"[LOOPIEST AUTH] {len(keys)} passkeys ativas salvas em: {filepath}")
+    # 2. Migração automática de pass.txt local, caso exista
+    base_dir = get_app_root_dir()
+    legacy_pass_txt = os.path.join(base_dir, "pass.txt")
+    if os.path.exists(legacy_pass_txt):
+        try:
+            with open(legacy_pass_txt, "r", encoding="utf-8") as f:
+                content = f.read()
+            encrypted = encrypt_data(content.encode("utf-8"))
+            with open(vault_path, "wb") as f:
+                f.write(encrypted)
+            print(f"[LOOPIEST VAULT] pass.txt migrado e criptografado para: {vault_path}")
+            return vault_path
+        except Exception:
+            pass
 
-    return filepath
+    # 3. Geração e criptografia direta para pass.dat
+    keys = generate_passkeys(count)
+    content = "\n".join(keys) + "\n"
+    encrypted = encrypt_data(content.encode("utf-8"))
+    with open(vault_path, "wb") as f:
+        f.write(encrypted)
+    print(f"[LOOPIEST VAULT] {len(keys)} passkeys ativas criptografadas em: {vault_path}")
+
+    return vault_path
 
 
-def get_saved_passkey(base_dir: Optional[str] = None) -> Optional[str]:
-    """
-    Retrieves a previously saved passkey if valid from software root on C:.
-    Checks license.key first, then fallback files.
-    """
-    if base_dir is None:
-        base_dir = get_app_root_dir()
+def load_active_passkeys() -> List[str]:
+    """Descriptografa e lê as passkeys ativas de C:\\loopiest\\acess\\pass.dat em memória."""
+    access_dir = get_root_access_dir()
+    vault_path = os.path.join(access_dir, VAULT_PASSKEYS_FILENAME)
+    decrypted = decrypt_file(vault_path)
+    if decrypted:
+        return [l.strip() for l in decrypted.decode("utf-8").splitlines() if l.strip()]
+    return []
 
-    for filename in ALT_LICENSE_FILENAMES:
-        license_path = os.path.join(base_dir, filename)
-        if os.path.exists(license_path):
+
+def export_passkeys_txt(target_path: str = "pass.txt") -> bool:
+    """Exporta as chaves criptografadas de pass.dat de volta para um arquivo .txt legível."""
+    keys = load_active_passkeys()
+    if keys:
+        with open(target_path, "w", encoding="utf-8") as f:
+            for k in keys:
+                f.write(f"{k}\n")
+        print(f"[LOOPIEST VAULT] {len(keys)} chaves exportadas com sucesso para: {target_path}")
+        return True
+    return False
+
+
+def get_saved_passkey() -> Optional[str]:
+    """Recupera a passkey ativa do arquivo criptografado license.dat em C:\\loopiest\\acess."""
+    access_dir = get_root_access_dir()
+    license_dat = os.path.join(access_dir, VAULT_LICENSE_FILENAME)
+
+    if os.path.exists(license_dat):
+        decrypted = decrypt_file(license_dat)
+        if decrypted:
             try:
-                with open(license_path, "r", encoding="utf-8") as f:
-                    key = f.read().strip()
+                key = decrypted.decode("utf-8").strip()
                 is_valid, _, _ = validate_passkey(key)
                 if is_valid:
                     return key
             except Exception:
                 pass
+
+    # Migração retrocompatível caso exista license.key antigo no diretório do app
+    base_dir = get_app_root_dir()
+    for legacy_name in ["license.key", ".license"]:
+        legacy_path = os.path.join(base_dir, legacy_name)
+        if os.path.exists(legacy_path):
+            try:
+                with open(legacy_path, "r", encoding="utf-8") as f:
+                    key = f.read().strip()
+                is_valid, _, _ = validate_passkey(key)
+                if is_valid:
+                    save_passkey(key)
+                    try:
+                        os.remove(legacy_path)
+                    except Exception:
+                        pass
+                    return key
+            except Exception:
+                pass
+
     return None
 
 
-def save_passkey(key: str, base_dir: Optional[str] = None) -> bool:
-    """
-    Saves an active passkey to license.key in the software root directory on C:.
-    """
-    if base_dir is None:
-        base_dir = get_app_root_dir()
-    license_path = os.path.join(base_dir, LICENSE_FILENAME)
+def save_passkey(key: str) -> bool:
+    """Criptografa e salva a passkey ativa em C:\\loopiest\\acess\\license.dat."""
+    access_dir = get_root_access_dir()
+    license_dat = os.path.join(access_dir, VAULT_LICENSE_FILENAME)
 
     try:
-        with open(license_path, "w", encoding="utf-8") as f:
-            f.write(key.strip().upper() + "\n")
-        print(f"[LOOPIEST AUTH] Passkey ativa salva em: {license_path}")
+        data = key.strip().upper().encode("utf-8")
+        encrypted = encrypt_data(data)
+        with open(license_dat, "wb") as f:
+            f.write(encrypted)
+        print(f"[LOOPIEST VAULT] Passkey criptografada salva em: {license_dat}")
         return True
     except Exception as err:
-        print(f"[LOOPIEST AUTH] Erro ao salvar passkey ({err}).")
+        print(f"[LOOPIEST VAULT] Erro ao criptografar passkey ({err}).")
         return False
 
 
-def clear_saved_passkey(base_dir: Optional[str] = None) -> bool:
-    """
-    Removes license files from software root directory.
-    """
-    if base_dir is None:
-        base_dir = get_app_root_dir()
+def clear_saved_passkey() -> bool:
+    """Remove o arquivo criptografado license.dat de C:\\loopiest\\acess."""
+    access_dir = get_root_access_dir()
+    license_dat = os.path.join(access_dir, VAULT_LICENSE_FILENAME)
+    if os.path.exists(license_dat):
+        try:
+            os.remove(license_dat)
+            return True
+        except Exception:
+            return False
+    return False
 
-    cleared = False
-    for filename in ALT_LICENSE_FILENAMES:
-        license_path = os.path.join(base_dir, filename)
-        if os.path.exists(license_path):
+
+def get_saved_username() -> Optional[str]:
+    """Recupera o nome do produtor do arquivo criptografado user.dat em C:\\loopiest\\acess."""
+    access_dir = get_root_access_dir()
+    user_dat = os.path.join(access_dir, VAULT_USER_FILENAME)
+
+    if os.path.exists(user_dat):
+        decrypted = decrypt_file(user_dat)
+        if decrypted:
             try:
-                os.remove(license_path)
-                cleared = True
+                user = decrypted.decode("utf-8").strip()
+                if user:
+                    return user
             except Exception:
                 pass
-    return cleared
 
-
-USER_FILENAME = "user.txt"
-
-
-def get_saved_username(base_dir: Optional[str] = None) -> Optional[str]:
-    """
-    Retrieves a registered username from user.txt in the software root directory on C:.
-    """
-    if base_dir is None:
-        base_dir = get_app_root_dir()
-    user_path = os.path.join(base_dir, USER_FILENAME)
-
-    if os.path.exists(user_path):
+    # Migração retrocompatível de user.txt antigo
+    base_dir = get_app_root_dir()
+    legacy_user_txt = os.path.join(base_dir, "user.txt")
+    if os.path.exists(legacy_user_txt):
         try:
-            with open(user_path, "r", encoding="utf-8") as f:
+            with open(legacy_user_txt, "r", encoding="utf-8") as f:
                 user = f.read().strip()
             if user:
+                save_username(user)
+                try:
+                    os.remove(legacy_user_txt)
+                except Exception:
+                    pass
                 return user
         except Exception:
             pass
+
     return None
 
 
-def save_username(username: str, base_dir: Optional[str] = None) -> bool:
-    """
-    Saves a username to user.txt in the software root directory on C:.
-    """
-    if base_dir is None:
-        base_dir = get_app_root_dir()
-    user_path = os.path.join(base_dir, USER_FILENAME)
+def save_username(username: str) -> bool:
+    """Criptografa e salva o nome de usuário em C:\\loopiest\\acess\\user.dat."""
+    access_dir = get_root_access_dir()
+    user_dat = os.path.join(access_dir, VAULT_USER_FILENAME)
 
     clean_user = username.strip()
     if not clean_user:
         return False
 
     try:
-        with open(user_path, "w", encoding="utf-8") as f:
-            f.write(clean_user + "\n")
-        print(f"[LOOPIEST AUTH] Nome de usuário salvo em: {user_path}")
+        encrypted = encrypt_data(clean_user.encode("utf-8"))
+        with open(user_dat, "wb") as f:
+            f.write(encrypted)
+        print(f"[LOOPIEST VAULT] Usuário criptografado salvo em: {user_dat}")
         return True
     except Exception as err:
-        print(f"[LOOPIEST AUTH] Erro ao salvar nome de usuário ({err}).")
+        print(f"[LOOPIEST VAULT] Erro ao criptografar usuário ({err}).")
         return False
 
 
-def clear_saved_username(base_dir: Optional[str] = None) -> bool:
-    """
-    Removes user.txt from software root directory.
-    """
-    if base_dir is None:
-        base_dir = get_app_root_dir()
-    user_path = os.path.join(base_dir, USER_FILENAME)
-
-    if os.path.exists(user_path):
+def clear_saved_username() -> bool:
+    """Remove user.dat de C:\\loopiest\\acess."""
+    access_dir = get_root_access_dir()
+    user_dat = os.path.join(access_dir, VAULT_USER_FILENAME)
+    if os.path.exists(user_dat):
         try:
-            os.remove(user_path)
+            os.remove(user_dat)
             return True
         except Exception:
-            pass
+            return False
     return False
-

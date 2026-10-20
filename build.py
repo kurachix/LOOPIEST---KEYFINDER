@@ -84,7 +84,6 @@ def compilar_pyinstaller(base_dir: str):
         "--name=LOOPIEST_KEYFINDER",
         f"--add-data={logo_png};assets",
         f"--add-data={os.path.join('styles', 'theme.qss')};styles",
-        f"--add-data={os.path.join(base_dir, 'pass.txt')};.",
         "--hidden-import=PySide6.QtCore",
         "--hidden-import=PySide6.QtGui",
         "--hidden-import=PySide6.QtWidgets",
@@ -92,6 +91,20 @@ def compilar_pyinstaller(base_dir: str):
         "--hidden-import=soundfile",
         "--hidden-import=scipy",
         "--hidden-import=numpy",
+        "--hidden-import=hashlib",
+        "--hidden-import=hmac",
+        "--hidden-import=secrets",
+        "--hidden-import=concurrent.futures",
+        "--hidden-import=src.crypto",
+        "--hidden-import=src.auth",
+        "--hidden-import=src.login_window",
+        "--hidden-import=src.username_window",
+        "--hidden-import=src.splash_screen",
+        "--hidden-import=src.main_window",
+        "--hidden-import=src.key_detector",
+        "--hidden-import=src.drop_zone",
+        "--hidden-import=src.worker",
+        "--hidden-import=src.audio_analyzer",
         main_script
     ]
 

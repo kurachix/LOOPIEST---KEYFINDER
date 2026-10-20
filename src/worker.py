@@ -1,16 +1,17 @@
 """
 Worker Thread Module for Asynchronous Initialization and Audio Analysis Engine.
-Handles background tasks to ensure high-performance GUI response.
+Handles multi-threaded background tasks to ensure 60 FPS GUI response and turbo audio processing.
 """
 
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from PySide6.QtCore import QThread, Signal
 
 
 class LoadingWorker(QThread):
     """
-    Worker thread handling initial startup sequence.
+    Worker thread handling initial startup sequence and audio engine pre-warming.
     """
     progress_changed = Signal(int)
     status_changed = Signal(str)
@@ -25,10 +26,10 @@ class LoadingWorker(QThread):
 
     def run(self):
         steps = [
-            (15, "Carregando configurações do sistema..."),
-            (35, "Inicializando módulos de áudio..."),
-            (55, "Verificando chaves de licença..."),
-            (75, "Carregando mecanismo de detecção..."),
+            (20, "Carregando configurações do sistema..."),
+            (45, "Inicializando módulos de áudio & aceleração multithread..."),
+            (65, "Verificando chaves de licença..."),
+            (85, "Otimizando mecanismos de detecção tonal..."),
             (95, "Preparando ambiente de trabalho..."),
             (100, "Inicialização concluída com sucesso!")
         ]
@@ -41,14 +42,22 @@ class LoadingWorker(QThread):
 
             self.status_changed.emit(status_text)
 
+            # Pre-warm JIT and audio libraries in background during splash screen
+            if target_progress == 45:
+                try:
+                    from src.audio_analyzer import pre_aquecer_engine_audio
+                    pre_aquecer_engine_audio()
+                except Exception:
+                    pass
+
             while current_progress < target_progress:
                 if not self._is_running:
                     return
                 current_progress += 1
                 self.progress_changed.emit(current_progress)
-                time.sleep(0.015)
+                time.sleep(0.012)
 
-            time.sleep(0.15)
+            time.sleep(0.12)
 
         if self._is_running:
             self.loading_complete.emit()
@@ -56,7 +65,8 @@ class LoadingWorker(QThread):
 
 class AnalysisWorker(QThread):
     """
-    Worker thread that executes audio frequency processing.
+    High-performance multi-threaded worker thread executing parallel audio frequency processing.
+    Utilizes all available CPU cores and hardware threads for concurrent BPM, Key, and Tuning detection.
     """
     status_changed = Signal(str)
     progress_changed = Signal(int)
@@ -72,11 +82,11 @@ class AnalysisWorker(QThread):
         self._is_running = False
 
     def run(self):
-        """Execute audio analysis task."""
+        """Execute audio analysis task using parallel CPU threads."""
         file_name = os.path.basename(self.file_path)
 
         try:
-            self.status_changed.emit(f"Processando áudio ({file_name})...")
+            self.status_changed.emit(f"Carregamento C-acelerado ({file_name})...")
             self.progress_changed.emit(15)
 
             if not os.path.exists(self.file_path):
@@ -88,31 +98,46 @@ class AnalysisWorker(QThread):
                 return
 
             try:
-                from src.audio_analyzer import carregar_audio, ranquear_notas, calcular_bpm, estimar_afinacao_hz
+                from src.audio_analyzer import (
+                    carregar_audio,
+                    ranquear_notas_em_memoria,
+                    calcular_bpm,
+                    estimar_afinacao_hz
+                )
                 from src.key_detector import descobrir_tom, obter_escala_relativa
 
-                self.status_changed.emit("Analisando estrutura de frequências & tempo...")
-                self.progress_changed.emit(45)
-
+                # 1. Carregamento ultrarrápido em RAM (libsndfile em C)
                 y, sr = carregar_audio(self.file_path)
-                
+
                 duration_sec = len(y) / float(sr)
                 if duration_sec < 0.5:
                     self.analysis_failed.emit("A duração do arquivo de áudio é muito curta para análise.")
                     return
 
-                self.status_changed.emit("Calculando tonalidade, BPM & afinação...")
-                self.progress_changed.emit(75)
+                cpu_workers = min(16, max(4, os.cpu_count() or 4))
+                self.status_changed.emit(f"Processamento paralelo turbo ({cpu_workers} threads)...")
+                self.progress_changed.emit(50)
 
-                bpm = calcular_bpm(y, sr)
-                tuning_hz = estimar_afinacao_hz(y, sr)
-                ranking_notas = ranquear_notas(self.file_path, top_n=8)
+                # 2. Execução Concorrente em Hardware Multiprocessamento / Multi-Threads
+                with ThreadPoolExecutor(max_workers=cpu_workers) as executor:
+                    fut_bpm = executor.submit(calcular_bpm, y, sr)
+                    fut_tuning = executor.submit(estimar_afinacao_hz, y, sr)
+                    fut_ranking = executor.submit(ranquear_notas_em_memoria, y, sr, top_n=8)
+
+                    bpm = fut_bpm.result()
+                    tuning_hz = fut_tuning.result()
+                    ranking_notas = fut_ranking.result()
+
+                self.progress_changed.emit(85)
+                self.status_changed.emit("Convergindo análise harmônica & métricas...")
+
+                # 3. Classificação Tonal e Escalas Relativas
                 key_result, top_candidatos = descobrir_tom(ranking_notas, detalhado=True)
                 detected_key = key_result.replace("Key: ", "")
                 relative_key = obter_escala_relativa(detected_key)
 
                 self.progress_changed.emit(100)
-                time.sleep(0.2)
+                time.sleep(0.08)
 
                 if not self._is_running:
                     return
@@ -136,7 +161,7 @@ class AnalysisWorker(QThread):
                 print(f"[Aviso] Módulos de áudio não encontrados ({imp_err}). Executando análise em modo alternativo.")
                 self.status_changed.emit("Analisando frequências de áudio...")
                 self.progress_changed.emit(60)
-                time.sleep(1.0)
+                time.sleep(0.5)
                 self.progress_changed.emit(100)
 
                 mock_ranking = [

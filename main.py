@@ -19,7 +19,7 @@ from src.login_window import LoginWindow
 from src.username_window import UsernameWindow
 from src.splash_screen import SplashScreen
 from src.main_window import MainWindow
-from src.auth import ensure_pass_file, get_saved_passkey, get_saved_username
+from src.auth import ensure_pass_vault, get_saved_passkey, get_saved_username
 
 
 def main():
@@ -37,10 +37,9 @@ def main():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     logo_path = os.path.join(base_dir, "assets", "logo.png")
     qss_path = os.path.join(base_dir, "styles", "theme.qss")
-    pass_file_path = os.path.join(base_dir, "pass.txt")
 
-    # Ensure pass.txt with 500 active passkeys is available on system launch
-    ensure_pass_file(pass_file_path, count=500)
+    # Ensure encrypted pass.dat vault with 500 active passkeys is available in C:\loopiest\acess
+    ensure_pass_vault(count=500)
 
     if os.path.exists(logo_path):
         app.setWindowIcon(QIcon(logo_path))

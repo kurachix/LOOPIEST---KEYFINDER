@@ -1,7 +1,7 @@
 """
 LOOPIEST KEYFINDER - Login & Passkey Authentication Screen.
 Minimalist frameless login window with purple dark aesthetic.
-Features real-time 5-layer cryptographic check feedback and zero-database verification.
+Focused exclusively on the passkey entry without exposing internal specifications.
 """
 
 import os
@@ -9,8 +9,7 @@ from PySide6.QtCore import Qt, QPoint, Signal, QTimer
 from PySide6.QtGui import QPixmap, QColor, QIcon, QGuiApplication
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QLineEdit, QCheckBox, QGraphicsDropShadowEffect,
-    QFrame
+    QPushButton, QLineEdit, QCheckBox, QGraphicsDropShadowEffect
 )
 
 from src.auth import (
@@ -23,8 +22,8 @@ from src.auth import (
 
 class LoginWindow(QWidget):
     """
-    Modern Minimalist Frameless Login & Passkey Screen.
-    Validates offline passkeys using a 5-tier mathematical & cryptographic sequence.
+    Clean Minimalist Frameless Login Screen.
+    Displays only the passkey input field, paste button, and unlock action.
     """
 
     authenticated = Signal(str)
@@ -52,7 +51,7 @@ class LoginWindow(QWidget):
         if os.path.exists(self.logo_path):
             self.setWindowIcon(QIcon(self.logo_path))
 
-        self.resize(460, 580)
+        self.resize(440, 360)
 
         screen = QGuiApplication.primaryScreen()
         if screen:
@@ -71,7 +70,7 @@ class LoginWindow(QWidget):
 
         container_layout = QVBoxLayout(self.main_container)
         container_layout.setContentsMargins(24, 18, 24, 24)
-        container_layout.setSpacing(10)
+        container_layout.setSpacing(12)
 
         # Header Bar
         header_layout = QHBoxLayout()
@@ -101,31 +100,15 @@ class LoginWindow(QWidget):
 
         container_layout.addLayout(header_layout)
 
+        container_layout.addStretch(1)
+
         # Central Logo / Header Icon
         self.logo_label = QLabel(self.main_container)
         self.logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.load_logo_image()
         container_layout.addWidget(self.logo_label)
 
-        # Title & Subtitle
-        self.title_label = QLabel("AUTENTICAÇÃO", self.main_container)
-        self.title_label.setObjectName("AppTitle")
-        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.subtitle_label = QLabel("P A S S K E Y   A C C E S S", self.main_container)
-        self.subtitle_label.setObjectName("AppSubtitle")
-        self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        container_layout.addWidget(self.title_label)
-        container_layout.addWidget(self.subtitle_label)
-
-        # Description
-        self.desc_label = QLabel("Insira sua passkey autorizada para desbloquear o sistema.", self.main_container)
-        self.desc_label.setObjectName("StatusLabel")
-        self.desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        container_layout.addWidget(self.desc_label)
-
-        container_layout.addSpacing(4)
+        container_layout.addSpacing(14)
 
         # Passkey Input Row
         input_row = QHBoxLayout()
@@ -133,7 +116,7 @@ class LoginWindow(QWidget):
 
         self.input_key = QLineEdit(self.main_container)
         self.input_key.setObjectName("PasskeyInput")
-        self.input_key.setPlaceholderText("LPST-XXXX-XXXX-XXXX-XXXX")
+        self.input_key.setPlaceholderText("Passkey...")
         self.input_key.setMaxLength(24)
         self.input_key.textChanged.connect(self.on_text_changed)
         self.input_key.returnPressed.connect(self.attempt_login)
@@ -148,46 +131,13 @@ class LoginWindow(QWidget):
 
         container_layout.addLayout(input_row)
 
-        # Real-Time 5-Tier Verification Card
-        self.card_verification = QFrame(self.main_container)
-        self.card_verification.setObjectName("VerificationCard")
-        card_layout = QVBoxLayout(self.card_verification)
-        card_layout.setContentsMargins(12, 10, 12, 10)
-        card_layout.setSpacing(6)
-
-        card_title = QLabel("CRITÉRIOS DE VALIDAÇÃO CRIPTOGRÁFICA (5 ETAPAS)", self.card_verification)
-        card_title.setObjectName("VerificationTitle")
-        card_layout.addWidget(card_title)
-
-        self.check_labels = {}
-        check_specs = [
-            ("format", "1. Estrutura & Prefixo (LPST-XXXX-XXXX-XXXX-XXXX)"),
-            ("modulo_parity", "2. Paridade Cruzada & Módulo Modular de Blocos"),
-            ("weighted_checksum", "3. Checksum Polinomial Ponderado Multibloco"),
-            ("sha256_sig", "4. Assinatura Criptográfica SHA-256 de Payload"),
-            ("master_hash", "5. Prova de Sequência Master Hash (Filtro Global)")
-        ]
-
-        for check_id, check_text in check_specs:
-            lbl = QLabel(f"○ {check_text}", self.card_verification)
-            lbl.setObjectName("CheckItemInactive")
-            self.check_labels[check_id] = (lbl, check_text)
-            card_layout.addWidget(lbl)
-
-        container_layout.addWidget(self.card_verification)
-
-        # Alert Box for Feedback (Error / Success)
+        # Alert Box for Feedback (Error only)
         self.alert_error = QLabel(self.main_container)
         self.alert_error.setObjectName("ErrorAlertBox")
+        self.alert_error.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.alert_error.setWordWrap(True)
         self.alert_error.hide()
         container_layout.addWidget(self.alert_error)
-
-        self.alert_success = QLabel(self.main_container)
-        self.alert_success.setObjectName("SuccessAlertBox")
-        self.alert_success.setWordWrap(True)
-        self.alert_success.hide()
-        container_layout.addWidget(self.alert_success)
 
         # Remember Me Option
         self.check_remember = QCheckBox("Lembrar neste computador (Login Automático)", self.main_container)
@@ -195,8 +145,10 @@ class LoginWindow(QWidget):
         self.check_remember.setChecked(True)
         container_layout.addWidget(self.check_remember)
 
+        container_layout.addStretch(1)
+
         # Unlock / Submit Button
-        self.btn_unlock = QPushButton("DESBLOQUEAR ACESSO", self.main_container)
+        self.btn_unlock = QPushButton("ENTRAR", self.main_container)
         self.btn_unlock.setObjectName("StartButton")
         self.btn_unlock.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_unlock.setFixedHeight(44)
@@ -247,10 +199,8 @@ class LoginWindow(QWidget):
         if saved_key:
             self.input_key.setText(saved_key)
             self.check_remember.setChecked(True)
-            self.update_checks_ui(saved_key)
 
     def on_text_changed(self, text: str):
-        # Auto-uppercase and update real-time checklist
         clean_text = text.strip().upper()
         if clean_text != text:
             cursor_pos = self.input_key.cursorPosition()
@@ -260,22 +210,6 @@ class LoginWindow(QWidget):
             self.input_key.blockSignals(False)
 
         self.alert_error.hide()
-        self.update_checks_ui(clean_text)
-
-    def update_checks_ui(self, key: str):
-        is_valid, msg, checks = validate_passkey(key)
-
-        for check_id, (lbl, text) in self.check_labels.items():
-            if checks.get(check_id, False):
-                lbl.setText(f"✓ {text}")
-                lbl.setObjectName("CheckItemActive")
-            else:
-                lbl.setText(f"○ {text}")
-                lbl.setObjectName("CheckItemInactive")
-
-            # Force style reload on dynamic objectName change
-            lbl.style().unpolish(lbl)
-            lbl.style().polish(lbl)
 
     def paste_from_clipboard(self):
         clipboard = QGuiApplication.clipboard()
@@ -287,14 +221,13 @@ class LoginWindow(QWidget):
     def attempt_login(self):
         key = self.input_key.text().strip().upper()
         if not key:
-            self.show_error("Por favor, digite ou cole uma passkey.")
+            self.show_error("Insira sua passkey.")
             return
 
-        is_valid, message, checks = validate_passkey(key)
-        self.update_checks_ui(key)
+        is_valid, _, _ = validate_passkey(key)
 
         if not is_valid:
-            self.show_error(f"Acesso Negado: {message}")
+            self.show_error("Chave inválida.")
             return
 
         # Handle persistence
@@ -305,20 +238,17 @@ class LoginWindow(QWidget):
 
         # Success state
         self.alert_error.hide()
-        self.alert_success.setText("✓ Passkey válida e ativada! Inicializando interface principal...")
-        self.alert_success.show()
         self.btn_unlock.setEnabled(False)
-        self.btn_unlock.setText("ACESSO AUTORIZADO")
+        self.btn_unlock.setText("ENTRANDO...")
 
-        # Smooth transition to MainWindow
-        QTimer.singleShot(450, lambda: self.finish_authentication(key))
+        # Smooth transition to Next Step
+        QTimer.singleShot(250, lambda: self.finish_authentication(key))
 
     def finish_authentication(self, key: str):
         self.authenticated.emit(key)
         self.close()
 
-    def show_error(self, message: str):
-        self.alert_success.hide()
+    def show_error(self, message: str = "Chave inválida."):
         self.alert_error.setText(f"⚠️ {message}")
         self.alert_error.show()
 
