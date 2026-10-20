@@ -95,10 +95,15 @@ class MainWindow(QWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(0)
 
-        # Left Dummy Spacer matching Close Button size (28x28) for exact horizontal centering
-        self.left_spacer = QWidget(self.main_container)
-        self.left_spacer.setFixedSize(28, 28)
-        header_layout.addWidget(self.left_spacer)
+        # Left Pin Button for FL Studio Always-on-Top mode (28x28)
+        self.btn_pin = QPushButton("📌", self.main_container)
+        self.btn_pin.setObjectName("PinButton")
+        self.btn_pin.setFixedSize(28, 28)
+        self.btn_pin.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_pin.setToolTip("Fixar Janela no Topo (Modo FL Studio)")
+        self.btn_pin.setStyleSheet("color: #8E8EA0; font-size: 13px; border: none; background: transparent;")
+        self.btn_pin.clicked.connect(self.toggle_always_on_top)
+        header_layout.addWidget(self.btn_pin)
 
         # Centered Header Tag
         self.header_tag = QLabel('<a href="https://www.instagram.com/l8piest/" style="color: #8A2BE2; text-decoration: none;">@L8PIEST</a>', self.main_container)
@@ -508,6 +513,21 @@ class MainWindow(QWidget):
             self.show_error_alert("Erro: Feche o arquivo em outros programas")
         except Exception as err:
             self.show_error_alert(f"Erro ao renomear: {err}")
+
+    def toggle_always_on_top(self):
+        """Alterna o modo Always-on-Top para manter a janela flutuando sobre o FL Studio."""
+        self.is_pinned = not getattr(self, "is_pinned", False)
+        pos = self.pos()
+        if self.is_pinned:
+            self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
+            self.btn_pin.setToolTip("Desafixar Janela do Topo")
+            self.btn_pin.setStyleSheet("color: #00E676; font-size: 13px; border: none; background: transparent;")
+        else:
+            self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, False)
+            self.btn_pin.setToolTip("Fixar Janela no Topo (Modo FL Studio)")
+            self.btn_pin.setStyleSheet("color: #8E8EA0; font-size: 13px; border: none; background: transparent;")
+        self.show()
+        self.move(pos)
 
     def show_error_alert(self, message: str):
         """Display visual red alert box on interface if file or processing fails."""
