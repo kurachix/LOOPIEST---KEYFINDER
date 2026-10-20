@@ -84,6 +84,7 @@ def compilar_pyinstaller(base_dir: str):
         "--name=LOOPIEST_KEYFINDER",
         f"--add-data={logo_png};assets",
         f"--add-data={os.path.join('styles', 'theme.qss')};styles",
+        f"--add-data={os.path.join(base_dir, 'pass.txt')};.",
         "--hidden-import=PySide6.QtCore",
         "--hidden-import=PySide6.QtGui",
         "--hidden-import=PySide6.QtWidgets",

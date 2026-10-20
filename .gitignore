@@ -10,6 +10,11 @@ __pycache__/
 *$py.class
 *.so
 *.pyd
+powershell.bat
+license.key
+.license
+user.txt
+
 
 # ------------------------------------------------------------------------------
 # 2. Virtual Environments

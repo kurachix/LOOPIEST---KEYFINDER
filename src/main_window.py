@@ -35,11 +35,13 @@ class MainWindow(QWidget):
     - Page 1: Streamlined Key Analysis Result (Tonalidade & Informações do Arquivo)
     """
 
-    def __init__(self, logo_path: str, qss_path: str = None):
+    def __init__(self, logo_path: str, qss_path: str = None, passkey: str = None, username: str = None):
         super().__init__()
 
         self.logo_path = logo_path
         self.qss_path = qss_path
+        self.passkey = passkey
+        self.username = username
         self.drag_position = QPoint()
         self.analysis_worker = None
 
@@ -68,9 +70,9 @@ class MainWindow(QWidget):
 
         screen = QGuiApplication.primaryScreen()
         if screen:
-            screen_geometry = screen.geometry()
-            x = (screen_geometry.width() - self.width()) // 2
-            y = (screen_geometry.height() - self.height()) // 2
+            screen_geometry = screen.availableGeometry()
+            x = screen_geometry.x() + (screen_geometry.width() - self.width()) // 2
+            y = screen_geometry.y() + (screen_geometry.height() - self.height()) // 2
             self.move(x, y)
 
     def init_ui(self):
@@ -103,7 +105,13 @@ class MainWindow(QWidget):
         self.header_tag.setObjectName("HeaderTag")
         self.header_tag.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.header_tag.setOpenExternalLinks(True)
-        self.header_tag.setCursor(Qt.CursorShape.PointingHandCursor)
+        if self.username or self.passkey:
+            tooltip_items = []
+            if self.username:
+                tooltip_items.append(f"Produtor: {self.username}")
+            if self.passkey:
+                tooltip_items.append(f"Passkey Ativa: {self.passkey}")
+            self.header_tag.setToolTip("\n".join(tooltip_items))
         header_layout.addWidget(self.header_tag, 1)
 
         # Close Button 'X'
@@ -147,10 +155,11 @@ class MainWindow(QWidget):
         self.load_logo_image()
         layout.addWidget(self.logo_label)
 
-        self.title_label = QLabel("LOOPIEST KEYFINDER", page)
+        title_text = f"LOOPIEST KEYFINDER • {self.username.upper()}" if self.username else "LOOPIEST KEYFINDER"
+        self.title_label = QLabel(title_text, page)
         self.title_label.setObjectName("AppTitle")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setStyleSheet("font-size: 16px; letter-spacing: 2px;")
+        self.title_label.setStyleSheet("font-size: 15px; letter-spacing: 2px;")
         layout.addWidget(self.title_label)
 
         # Drop Zone Component
@@ -249,7 +258,7 @@ class MainWindow(QWidget):
         layout.addWidget(self.key_card)
 
         # Botão de Renomeação de Arquivo com Menu Suspenso (Dropdown)
-        self.btn_rename = QPushButton("Adicionar informações ao arquivo", self.results_page)
+        self.btn_rename = QPushButton("Adicionar informações ao arquivo", page)
         self.btn_rename.setObjectName("RenameButton")
         self.btn_rename.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -258,6 +267,8 @@ class MainWindow(QWidget):
         # Opção 1: "Adicionar ambos" (Destaque visual purpúreo em negrito)
         action_ambos = QAction("✦ Adicionar ambos (BPM + TOM)", self.rename_menu)
         font_bold = action_ambos.font()
+        if font_bold.pointSize() <= 0:
+            font_bold.setPointSize(10)
         font_bold.setBold(True)
         action_ambos.setFont(font_bold)
         action_ambos.triggered.connect(lambda: self.executar_renomeacao("ambos"))
@@ -276,7 +287,7 @@ class MainWindow(QWidget):
 
         self.btn_rename.setMenu(self.rename_menu)
 
-        rename_container = QWidget(self.results_page)
+        rename_container = QWidget(page)
         rename_layout = QHBoxLayout(rename_container)
         rename_layout.setContentsMargins(0, 5, 0, 15)
         rename_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)

@@ -49,9 +49,9 @@ class SplashScreen(QWidget):
 
         screen = QGuiApplication.primaryScreen()
         if screen:
-            screen_geometry = screen.geometry()
-            x = (screen_geometry.width() - self.width()) // 2
-            y = (screen_geometry.height() - self.height()) // 2
+            screen_geometry = screen.availableGeometry()
+            x = screen_geometry.x() + (screen_geometry.width() - self.width()) // 2
+            y = screen_geometry.y() + (screen_geometry.height() - self.height()) // 2
             self.move(x, y)
 
     def init_ui(self):
