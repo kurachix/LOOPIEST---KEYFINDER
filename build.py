@@ -83,6 +83,8 @@ def compilar_pyinstaller(base_dir: str):
         "--windowed",
         "--name=LOOPIEST_KEYFINDER",
         f"--add-data={logo_png};assets",
+        f"--add-data={os.path.join('assets', 'disc_keyfinder.jpg')};assets",
+        f"--add-data={os.path.join('assets', 'disc_coming_soon.jpg')};assets",
         f"--add-data={os.path.join('styles', 'theme.qss')};styles",
         "--hidden-import=PySide6.QtCore",
         "--hidden-import=PySide6.QtGui",
@@ -99,6 +101,7 @@ def compilar_pyinstaller(base_dir: str):
         "--hidden-import=src.auth",
         "--hidden-import=src.login_window",
         "--hidden-import=src.username_window",
+        "--hidden-import=src.hub_window",
         "--hidden-import=src.splash_screen",
         "--hidden-import=src.main_window",
         "--hidden-import=src.key_detector",
@@ -114,11 +117,16 @@ def compilar_pyinstaller(base_dir: str):
     print("[Status] Executando compilação PyInstaller...")
     subprocess.check_call(cmd, cwd=base_dir)
 
-    # Copia o ícone transparente para a pasta de distribuição
+    # Copia todos os assets para a pasta de distribuição
     dist_assets = os.path.join(base_dir, "dist", "LOOPIEST_KEYFINDER", "assets")
     os.makedirs(dist_assets, exist_ok=True)
-    if os.path.exists(logo_png):
-        shutil.copy(logo_png, os.path.join(dist_assets, "logo.png"))
+    src_assets = os.path.join(base_dir, "assets")
+    if os.path.exists(src_assets):
+        for item in os.listdir(src_assets):
+            s_file = os.path.join(src_assets, item)
+            d_file = os.path.join(dist_assets, item)
+            if os.path.isfile(s_file):
+                shutil.copy2(s_file, d_file)
 
     print("[OK] [PyInstaller] Compilação concluída com sucesso em dist/LOOPIEST_KEYFINDER/")
 

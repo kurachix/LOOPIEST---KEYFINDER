@@ -412,3 +412,140 @@ QCheckBox::indicator:hover {
     border-color: #8A2BE2;
 }
 
+/* ==============================================================================
+   Software Hub & Disc Cards Styles
+   ============================================================================== */
+
+#HubUserChip {
+    background-color: #120C1F;
+    border: 1px solid #2D0B5A;
+    border-radius: 8px;
+    color: #E2E8F0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 5px 12px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#HubCard {
+    background-color: #0F0F16;
+    border: 1px solid #281242;
+    border-radius: 16px;
+    padding: 4px;
+}
+
+#HubCard:hover {
+    background-color: #141124;
+    border: 1px solid #8A2BE2;
+}
+
+#HubCardLocked {
+    background-color: #0B0B10;
+    border: 1px solid #1C152B;
+    border-radius: 16px;
+    padding: 4px;
+}
+
+#HubCardLocked:hover {
+    background-color: #0F0D18;
+    border: 1px solid #3B166A;
+}
+
+#BadgeAvailable {
+    background-color: #0D261A;
+    color: #00E676;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    font-family: 'Segoe UI', sans-serif;
+    border: 1px solid #14532D;
+    border-radius: 10px;
+    padding: 3px 10px;
+    max-height: 20px;
+}
+
+#BadgeLocked {
+    background-color: #170F28;
+    color: #8A7A9E;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    font-family: 'Segoe UI', sans-serif;
+    border: 1px solid #2D1B4D;
+    border-radius: 10px;
+    padding: 3px 10px;
+    max-height: 20px;
+}
+
+#HubCardCategory {
+    color: #8A2BE2;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#HubCardTitle {
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#HubCardDesc {
+    color: #8E8EA0;
+    font-size: 11px;
+    font-family: 'Segoe UI', sans-serif;
+    line-height: 1.3;
+}
+
+#HubDisabledButton {
+    background-color: #14111D;
+    color: #5C5C70;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    font-family: 'Segoe UI', sans-serif;
+    border: 1px solid #231A33;
+    border-radius: 10px;
+    padding: 8px 16px;
+}
+
+#HubDisabledButton:hover {
+    background-color: #1A1326;
+    color: #8E8EA0;
+    border-color: #3B166A;
+}
+
+#HubToast {
+    background-color: #1B0F2E;
+    border: 1px solid #8A2BE2;
+    border-radius: 10px;
+    color: #D8B4FE;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 14px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#HubReturnButton {
+    background-color: #140E26;
+    color: #B066FE;
+    border: 1px solid #3B166A;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    font-family: 'Segoe UI', sans-serif;
+    letter-spacing: 1px;
+}
+
+#HubReturnButton:hover {
+    background-color: #8A2BE2;
+    color: #FFFFFF;
+    border-color: #B066FE;
+}
+
+

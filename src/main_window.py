@@ -35,6 +35,8 @@ class MainWindow(QWidget):
     - Page 1: Streamlined Key Analysis Result (Tonalidade & Informações do Arquivo)
     """
 
+    return_to_hub_requested = Signal()
+
     def __init__(self, logo_path: str, qss_path: str = None, passkey: str = None, username: str = None):
         super().__init__()
 
@@ -93,7 +95,15 @@ class MainWindow(QWidget):
         # -------------------------------------------------------------
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(0)
+        header_layout.setSpacing(6)
+
+        # Left Back to Hub Button
+        self.btn_back_hub = QPushButton("◄ CENTRAL", self.main_container)
+        self.btn_back_hub.setObjectName("HubReturnButton")
+        self.btn_back_hub.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_back_hub.setToolTip("Voltar para a Central de Softwares")
+        self.btn_back_hub.clicked.connect(self._on_return_hub_clicked)
+        header_layout.addWidget(self.btn_back_hub)
 
         # Left Pin Button for FL Studio Always-on-Top mode (28x28)
         self.btn_pin = QPushButton("📌", self.main_container)
@@ -513,6 +523,14 @@ class MainWindow(QWidget):
             self.show_error_alert("Erro: Feche o arquivo em outros programas")
         except Exception as err:
             self.show_error_alert(f"Erro ao renomear: {err}")
+
+    def _on_return_hub_clicked(self):
+        """Fecha o Keyfinder e retorna para a Central de Softwares."""
+        if self.analysis_worker and self.analysis_worker.isRunning():
+            self.analysis_worker.stop()
+            self.analysis_worker.wait(500)
+        self.return_to_hub_requested.emit()
+        self.close()
 
     def toggle_always_on_top(self):
         """Alterna o modo Always-on-Top para manter a janela flutuando sobre o FL Studio."""
