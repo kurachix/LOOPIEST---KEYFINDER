@@ -7,11 +7,12 @@ Lifecycle Flow:
    - If passkey is present but username missing: opens Username Screen -> Software Hub.
 2. Software Selection Hub (Central de Softwares):
    - Modern dashboard presenting available and upcoming tools with interactive vinyl discs.
-   - Available: LOOPIEST KEYFINDER (Audio Analysis & Key Detection).
-   - Upcoming: Stem Separator, Mastering Rack (VIP Coming Soon).
+   - Available 1: LOOPIEST KEYFINDER (Audio Analysis & Key Detection).
+   - Available 2: LOOPIEST MP3 DOWNLOADER (YouTube, SoundCloud, TikTok & Famous Providers).
+   - Upcoming 3: Mastering Rack (VIP Coming Soon).
 3. Tool Execution:
-   - Selecting KEYFINDER initializes the Splash Loading sequence -> Main Keyfinder Window.
-   - Main Window features a '◄ CENTRAL' button to return to the Software Hub at any time.
+   - Selecting KEYFINDER or MP3 DOWNLOADER initializes the Splash Loading sequence -> Tool Window.
+   - Tool Windows feature a '◄ CENTRAL' button to return to the Software Hub at any time.
 """
 
 import sys
@@ -25,6 +26,7 @@ from src.username_window import UsernameWindow
 from src.hub_window import SoftwareHubWindow
 from src.splash_screen import SplashScreen
 from src.main_window import MainWindow
+from src.downloader_window import DownloaderWindow
 from src.auth import ensure_pass_vault, get_saved_passkey, get_saved_username
 
 
@@ -53,27 +55,41 @@ def main():
     # Reference holder to prevent active windows from being garbage collected
     window_container = {}
 
-    def launch_main_window(passkey: str = None, username: str = None):
-        """Step 3B: Launch Main Application Window for LOOPIEST KEYFINDER."""
+    def launch_main_window(passkey: str = None, username: str = None, initial_file: str = None):
+        """Step 3B (KeyFinder): Launch Main Application Window for LOOPIEST KEYFINDER."""
         main_win = MainWindow(logo_path=logo_path, qss_path=qss_path, passkey=passkey, username=username)
         window_container["main_window"] = main_win
         main_win.return_to_hub_requested.connect(lambda: launch_software_hub(passkey=passkey, username=username))
         main_win.show()
+        if initial_file and os.path.exists(initial_file):
+            main_win.handle_file_received(initial_file)
 
-    def launch_splash_screen(passkey: str = None, username: str = None):
-        """Step 3A: Launch Splash Screen (Software Loading for KeyFinder)."""
-        splash = SplashScreen(logo_path=logo_path, qss_path=qss_path)
+    def launch_downloader_window(passkey: str = None, username: str = None):
+        """Step 3B (Downloader): Launch Application Window for LOOPIEST MP3 DOWNLOADER."""
+        dl_win = DownloaderWindow(logo_path=logo_path, qss_path=qss_path, passkey=passkey, username=username)
+        window_container["downloader_window"] = dl_win
+        dl_win.return_to_hub_requested.connect(lambda: launch_software_hub(passkey=passkey, username=username))
+        dl_win.open_in_keyfinder_requested.connect(
+            lambda fpath: launch_main_window(passkey=passkey, username=username, initial_file=fpath)
+        )
+        dl_win.show()
+
+    def launch_splash_screen(passkey: str = None, username: str = None, software_mode: str = "keyfinder"):
+        """Step 3A: Launch Splash Screen (Software Loading for KeyFinder or Downloader)."""
+        splash = SplashScreen(logo_path=logo_path, qss_path=qss_path, software_mode=software_mode)
         window_container["splash"] = splash
-        splash.start_requested.connect(lambda: launch_main_window(passkey=passkey, username=username))
+        if software_mode == "downloader":
+            splash.start_requested.connect(lambda: launch_downloader_window(passkey=passkey, username=username))
+        else:
+            splash.start_requested.connect(lambda: launch_main_window(passkey=passkey, username=username))
         splash.show()
 
     def on_software_selected(software_id: str, passkey: str, username: str):
         """Callback when a software is executed from the Hub."""
-        if software_id == "keyfinder":
-            # Close Hub and launch KeyFinder splash loading
+        if software_id in ("keyfinder", "downloader"):
             if "hub" in window_container and window_container["hub"]:
                 window_container["hub"].close()
-            launch_splash_screen(passkey=passkey, username=username)
+            launch_splash_screen(passkey=passkey, username=username, software_mode=software_id)
 
     def launch_software_hub(passkey: str = None, username: str = None):
         """Step 2: Launch Central Software Hub (Multi-Tool Launcher)."""

@@ -1,6 +1,6 @@
 """
-LOOPIEST KEYFINDER - Splash Screen Module.
-Minimalist frameless splash screen with purple dark aesthetic.
+LOOPIEST SUITE - Splash Screen Module.
+Minimalist frameless splash screen with purple dark aesthetic for KeyFinder & Downloader.
 """
 
 import os
@@ -21,11 +21,12 @@ class SplashScreen(QWidget):
 
     start_requested = Signal()
 
-    def __init__(self, logo_path: str, qss_path: str = None):
+    def __init__(self, logo_path: str, qss_path: str = None, software_mode: str = "keyfinder"):
         super().__init__()
 
         self.logo_path = logo_path
         self.qss_path = qss_path
+        self.software_mode = software_mode
         self.drag_position = QPoint()
         self.worker = None
 
@@ -103,7 +104,8 @@ class SplashScreen(QWidget):
         self.title_label.setObjectName("AppTitle")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.subtitle_label = QLabel("K E Y F I N D E R", self.main_container)
+        subtitle_text = "D O W N L O A D E R" if self.software_mode == "downloader" else "K E Y F I N D E R"
+        self.subtitle_label = QLabel(subtitle_text, self.main_container)
         self.subtitle_label.setObjectName("AppSubtitle")
         self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -185,7 +187,7 @@ class SplashScreen(QWidget):
             print(f"[Erro] Falha ao carregar QSS ({err}).")
 
     def start_worker(self):
-        self.worker = LoadingWorker(self)
+        self.worker = LoadingWorker(self, software_mode=self.software_mode)
         self.worker.progress_changed.connect(self.update_progress)
         self.worker.status_changed.connect(self.update_status)
         self.worker.loading_complete.connect(self.on_loading_complete)

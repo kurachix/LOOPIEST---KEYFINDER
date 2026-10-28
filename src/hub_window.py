@@ -2,7 +2,8 @@
 LOOPIEST SUITE - Software Selection Hub (Central de Softwares).
 Frameless modern dark/neon hub allowing producers to select and launch tools:
 - LOOPIEST KEYFINDER (Available)
-- Future Suite Tools (Stem Separator, Mastering Rack - Coming Soon)
+- LOOPIEST MP3 DOWNLOADER (Available - YouTube, SoundCloud & Famous Providers)
+- Future Suite Tools (Mastering Rack - Coming Soon)
 Features animated interactive vinyl discs with smooth rotation and modern aesthetics.
 """
 
@@ -456,6 +457,7 @@ class SoftwareHubWindow(QWidget):
 
         base_assets = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
         disc_keyfinder_img = os.path.join(base_assets, "disc_keyfinder.jpg")
+        disc_downloader_img = os.path.join(base_assets, "disc_downloader.jpg")
         disc_coming_soon_img = os.path.join(base_assets, "disc_coming_soon.jpg")
 
         # 1. LOOPIEST KEYFINDER (Disponível)
@@ -472,19 +474,19 @@ class SoftwareHubWindow(QWidget):
         self.card_keyfinder.launch_requested.connect(self.on_launch_software)
         cards_layout.addWidget(self.card_keyfinder)
 
-        # 2. LOOPIEST STEM SEPARATOR (Em Breve)
-        self.card_stems = SoftwareCardWidget(
-            software_id="stems",
-            title="STEM SEPARATOR",
-            category="Isolamento por IA",
-            description="Separação cirúrgica de vocais, bateria, baixo e sintetizadores em stems limpos de alta definição.",
-            badge_text="🔒 EM BREVE",
-            disc_image_path=disc_coming_soon_img,
-            is_available=False,
+        # 2. LOOPIEST MP3 DOWNLOADER (Disponível)
+        self.card_downloader = SoftwareCardWidget(
+            software_id="downloader",
+            title="MP3 DOWNLOADER",
+            category="YouTube • SoundCloud & +",
+            description="Extração de áudio em 320kbps e WAV direto do YouTube, SoundCloud, TikTok e provedores famosos.",
+            badge_text="● DISPONÍVEL",
+            disc_image_path=disc_downloader_img,
+            is_available=True,
             parent=self.main_container
         )
-        self.card_stems.locked_clicked.connect(self.show_locked_feedback)
-        cards_layout.addWidget(self.card_stems)
+        self.card_downloader.launch_requested.connect(self.on_launch_software)
+        cards_layout.addWidget(self.card_downloader)
 
         # 3. LOOPIEST MASTERING RACK (Em Breve)
         self.card_mastering = SoftwareCardWidget(

@@ -549,3 +549,36 @@ QCheckBox::indicator:hover {
 }
 
 
+/* ==============================================================================
+   MP3 & Stream Downloader Styles
+   ============================================================================== */
+
+#FormatPillButton {
+    background-color: #13111E;
+    color: #9A9AB2;
+    border: 1px solid #2C184A;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Segoe UI', sans-serif;
+    letter-spacing: 0.5px;
+}
+
+#FormatPillButton:hover {
+    background-color: #1D1530;
+    color: #E2E8F0;
+    border-color: #8A2BE2;
+}
+
+#FormatPillButton:checked {
+    background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #2D0B5A, stop:1 #7B22D3);
+    color: #FFFFFF;
+    border: 1px solid #B066FE;
+}
+
+#FormatPillButton:disabled {
+    background-color: #0D0C14;
+    color: #4A4A5E;
+    border-color: #1C152B;
+}

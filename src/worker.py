@@ -1,5 +1,5 @@
 """
-Worker Thread Module for Asynchronous Initialization and Audio Analysis Engine.
+Worker Thread Module for Asynchronous Initialization, Audio Analysis Engine, and Multi-Provider Downloader.
 Handles multi-threaded background tasks to ensure 60 FPS GUI response and turbo audio processing.
 """
 
@@ -7,6 +7,16 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from PySide6.QtCore import QThread, Signal
+
+
+def formatar_duracao(duracao_segundos: float) -> str:
+    """Format duration in seconds to minutes and seconds string (e.g. 3m 05s)."""
+    minutos = int(duracao_segundos // 60)
+    segundos = int(round(duracao_segundos % 60))
+    if segundos == 60:
+        minutos += 1
+        segundos = 0
+    return f"{minutos}m {segundos:02d}s"
 
 
 class LoadingWorker(QThread):
@@ -17,22 +27,32 @@ class LoadingWorker(QThread):
     status_changed = Signal(str)
     loading_complete = Signal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, software_mode: str = "keyfinder"):
         super().__init__(parent)
         self._is_running = True
+        self.software_mode = software_mode
 
     def stop(self):
         self._is_running = False
 
     def run(self):
-        steps = [
-            (20, "Carregando configurações do sistema..."),
-            (45, "Inicializando módulos de áudio & aceleração multithread..."),
-            (65, "Verificando chaves de licença..."),
-            (85, "Otimizando mecanismos de detecção tonal..."),
-            (95, "Preparando ambiente de trabalho..."),
-            (100, "Inicialização concluída com sucesso!")
-        ]
+        if self.software_mode == "downloader":
+            steps = [
+                (20, "Carregando módulos de rede & protocolos HTTPS..."),
+                (45, "Inicializando extratores YouTube, SoundCloud & Streams..."),
+                (70, "Configurando encoder MP3 320kbps & FFmpeg Studio..."),
+                (90, "Sincronizando integração com KeyFinder Engine..."),
+                (100, "Downloader pronto para extração!")
+            ]
+        else:
+            steps = [
+                (20, "Carregando configurações do sistema..."),
+                (45, "Inicializando módulos de áudio & aceleração multithread..."),
+                (65, "Verificando chaves de licença..."),
+                (85, "Otimizando mecanismos de detecção tonal..."),
+                (95, "Preparando ambiente de trabalho..."),
+                (100, "Inicialização concluída com sucesso!")
+            ]
 
         current_progress = 0
 
@@ -43,7 +63,7 @@ class LoadingWorker(QThread):
             self.status_changed.emit(status_text)
 
             # Pre-warm JIT and audio libraries in background during splash screen
-            if target_progress == 45:
+            if target_progress == 45 and self.software_mode == "keyfinder":
                 try:
                     from src.audio_analyzer import pre_aquecer_engine_audio
                     pre_aquecer_engine_audio()
@@ -55,9 +75,9 @@ class LoadingWorker(QThread):
                     return
                 current_progress += 1
                 self.progress_changed.emit(current_progress)
-                time.sleep(0.012)
+                time.sleep(0.010)
 
-            time.sleep(0.12)
+            time.sleep(0.10)
 
         if self._is_running:
             self.loading_complete.emit()
@@ -190,3 +210,66 @@ class AnalysisWorker(QThread):
         except Exception as err:
             print(f"[Erro interno em AnalysisWorker]: {err}")
             self.analysis_failed.emit(f"Não foi possível analisar o arquivo de áudio ({err}).")
+
+
+class DownloadWorker(QThread):
+    """
+    Asynchronous Worker Thread for downloading and converting audio streams
+    from YouTube, SoundCloud, TikTok, Bandcamp, Instagram, and other providers.
+    """
+    status_changed = Signal(str)
+    progress_changed = Signal(int)
+    download_completed = Signal(dict)
+    download_failed = Signal(str)
+
+    def __init__(
+        self,
+        url: str,
+        output_dir: str,
+        quality_format: str = "mp3_320",
+        auto_keyfinder: bool = False,
+        parent=None
+    ):
+        super().__init__(parent)
+        self.url = url
+        self.output_dir = output_dir
+        self.quality_format = quality_format
+        self.auto_keyfinder = auto_keyfinder
+        self._is_cancelled = False
+
+    def stop(self):
+        self._is_cancelled = True
+
+    def _on_progress(self, pct: int, status_msg: str):
+        if not self._is_cancelled:
+            self.progress_changed.emit(pct)
+            self.status_changed.emit(status_msg)
+
+    def run(self):
+        try:
+            from src.downloader_engine import baixar_e_converter_audio
+
+            result = baixar_e_converter_audio(
+                url=self.url,
+                pasta_destino=self.output_dir,
+                formato_qualidade=self.quality_format,
+                auto_keyfinder=self.auto_keyfinder,
+                progress_callback=self._on_progress,
+                cancel_check=lambda: self._is_cancelled
+            )
+
+            if not self._is_cancelled:
+                self.download_completed.emit(result)
+
+        except InterruptedError:
+            pass
+        except Exception as err:
+            if not self._is_cancelled:
+                msg = str(err)
+                if "Unsupported URL" in msg or "is not a valid URL" in msg:
+                    msg = "Link não suportado ou indisponível neste provedor."
+                elif "Private video" in msg or "Sign in" in msg:
+                    msg = "Esta mídia é privada ou possui restrição de acesso."
+                elif "Video unavailable" in msg:
+                    msg = "O vídeo/áudio informado não está disponível."
+                self.download_failed.emit(msg)

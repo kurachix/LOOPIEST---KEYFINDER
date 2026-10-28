@@ -3,3 +3,5 @@ librosa>=0.10.0
 numpy>=1.24.0
 soundfile>=0.12.1
 scipy>=1.10.0
+yt-dlp>=2024.0.0
+imageio-ffmpeg>=0.5.0
