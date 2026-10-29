@@ -120,22 +120,25 @@ class AnalysisWorker(QThread):
             try:
                 from src.audio_analyzer import (
                     carregar_audio,
+                    obter_duracao_real_arquivo,
                     ranquear_notas_em_memoria,
                     calcular_bpm,
                     estimar_afinacao_hz
                 )
                 from src.key_detector import descobrir_tom, obter_escala_relativa
 
-                # 1. Carregamento ultrarrápido em RAM (libsndfile em C)
+                # 1. Carregamento ultrarrápido em RAM (libsndfile em C + SoXR SIMD)
                 y, sr = carregar_audio(self.file_path)
 
-                duration_sec = len(y) / float(sr)
-                if duration_sec < 0.5:
+                window_duration_sec = len(y) / float(sr)
+                if window_duration_sec < 0.5:
                     self.analysis_failed.emit("A duração do arquivo de áudio é muito curta para análise.")
                     return
 
+                duration_sec = obter_duracao_real_arquivo(self.file_path, fallback_sec=window_duration_sec)
+
                 cpu_workers = min(16, max(4, os.cpu_count() or 4))
-                self.status_changed.emit(f"Processamento paralelo turbo ({cpu_workers} threads)...")
+                self.status_changed.emit(f"Processamento paralelo SIMD ({cpu_workers} threads)...")
                 self.progress_changed.emit(50)
 
                 # 2. Execução Concorrente em Hardware Multiprocessamento / Multi-Threads
@@ -148,7 +151,7 @@ class AnalysisWorker(QThread):
                     tuning_hz = fut_tuning.result()
                     ranking_notas = fut_ranking.result()
 
-                self.progress_changed.emit(85)
+                self.progress_changed.emit(90)
                 self.status_changed.emit("Convergindo análise harmônica & métricas...")
 
                 # 3. Classificação Tonal e Escalas Relativas
@@ -157,7 +160,6 @@ class AnalysisWorker(QThread):
                 relative_key = obter_escala_relativa(detected_key)
 
                 self.progress_changed.emit(100)
-                time.sleep(0.08)
 
                 if not self._is_running:
                     return

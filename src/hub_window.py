@@ -14,7 +14,7 @@ from PySide6.QtGui import (
     QPainterPath, QPen, QBrush, QLinearGradient, QRadialGradient, QFont
 )
 from PySide6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
     QPushButton, QFrame, QGraphicsDropShadowEffect
 )
 
@@ -361,61 +361,74 @@ class SoftwareHubWindow(QWidget):
         container_layout.setSpacing(12)
 
         # ---------------------------------------------------------
-        # 1. Header Bar
+        # 1. Header Bar (Perfectly Centered @L8PIEST via Symmetric Side Containers)
         # ---------------------------------------------------------
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(10)
+        header_layout.setSpacing(0)
 
-        # User profile chip on the left
+        # Left Container (Fixed width 240px to match Right Container)
+        left_side = QWidget(self.main_container)
+        left_side.setFixedSize(240, 30)
+        left_layout = QHBoxLayout(left_side)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
         user_display = self.username.upper()
-        self.user_chip = QLabel(f"🎧 PRODUTOR: {user_display}  <span style='color: #00E676;'>● VIP</span>", self.main_container)
+        self.user_chip = QLabel(f"🎧 PRODUTOR: {user_display}  <span style='color: #00E676;'>● VIP</span>", left_side)
         self.user_chip.setObjectName("HubUserChip")
         if self.passkey:
             self.user_chip.setToolTip(f"Licença Ativa: {self.passkey}\nUsuário Registrado: {self.username}")
-        header_layout.addWidget(self.user_chip)
+        left_layout.addWidget(self.user_chip)
+        header_layout.addWidget(left_side)
 
-        header_layout.addStretch(1)
-
-        # Centered Instagram Tag
+        # Center Instagram Tag (100% Geometrically Centered)
         self.header_tag = QLabel(
             '<a href="https://www.instagram.com/l8piest/" style="color: #8A2BE2; text-decoration: none;">@L8PIEST</a>',
             self.main_container
         )
         self.header_tag.setObjectName("HeaderTag")
+        self.header_tag.setFixedHeight(30)
         self.header_tag.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.header_tag.setOpenExternalLinks(True)
         self.header_tag.setCursor(Qt.CursorShape.PointingHandCursor)
-        header_layout.addWidget(self.header_tag)
+        header_layout.addWidget(self.header_tag, 1, Qt.AlignmentFlag.AlignCenter)
 
-        header_layout.addStretch(1)
+        # Right Container (Fixed width 240px to balance Left Container)
+        right_side = QWidget(self.main_container)
+        right_side.setFixedSize(240, 30)
+        right_layout = QHBoxLayout(right_side)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(6)
+        right_layout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
-        # Window Action Controls
-        self.btn_pin = QPushButton("📌", self.main_container)
+        self.btn_pin = QPushButton("📌", right_side)
         self.btn_pin.setObjectName("PinButton")
         self.btn_pin.setFixedSize(28, 28)
         self.btn_pin.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_pin.setToolTip("Fixar Janela no Topo")
         self.btn_pin.setStyleSheet("color: #8E8EA0; font-size: 13px; border: none; background: transparent;")
         self.btn_pin.clicked.connect(self.toggle_pin)
-        header_layout.addWidget(self.btn_pin)
+        right_layout.addWidget(self.btn_pin)
 
-        self.btn_min = QPushButton("—", self.main_container)
+        self.btn_min = QPushButton("—", right_side)
         self.btn_min.setObjectName("MinButton")
         self.btn_min.setFixedSize(28, 28)
         self.btn_min.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_min.setToolTip("Minimizar")
         self.btn_min.setStyleSheet("color: #8E8EA0; font-size: 14px; font-weight: bold; border: none; background: transparent;")
         self.btn_min.clicked.connect(self.showMinimized)
-        header_layout.addWidget(self.btn_min)
+        right_layout.addWidget(self.btn_min)
 
-        self.btn_close = QPushButton("✕", self.main_container)
+        self.btn_close = QPushButton("✕", right_side)
         self.btn_close.setObjectName("CloseButton")
         self.btn_close.setFixedSize(28, 28)
         self.btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_close.setToolTip("Fechar Aplicação")
         self.btn_close.clicked.connect(self.close_application)
-        header_layout.addWidget(self.btn_close)
+        right_layout.addWidget(self.btn_close)
+
+        header_layout.addWidget(right_side)
 
         container_layout.addLayout(header_layout)
 

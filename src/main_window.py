@@ -9,23 +9,13 @@ import os
 from PySide6.QtCore import Qt, QPoint, QThread, Signal, Slot
 from PySide6.QtGui import QPixmap, QColor, QIcon, QGuiApplication, QAction
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
     QPushButton, QProgressBar, QGraphicsDropShadowEffect,
     QStackedWidget, QFrame, QMenu
 )
 
 from src.drop_zone import DropZoneWidget
-from src.worker import AnalysisWorker
-
-
-def formatar_duracao(duracao_segundos: float) -> str:
-    """Format duration in seconds to minutes and seconds string (e.g. 3m 05s)."""
-    minutos = int(duracao_segundos // 60)
-    segundos = int(round(duracao_segundos % 60))
-    if segundos == 60:
-        minutos += 1
-        segundos = 0
-    return f"{minutos}m {segundos:02d}s"
+from src.worker import AnalysisWorker, formatar_duracao
 
 
 class MainWindow(QWidget):
@@ -78,7 +68,7 @@ class MainWindow(QWidget):
             self.move(x, y)
 
     def init_ui(self):
-        """Construct window widgets, header with perfectly centered @L8PIEST tag and Close 'X' button."""
+        """Construct window widgets, header with mathematically centered @L8PIEST tag and Close 'X' button."""
         self.main_container = QWidget(self)
         self.main_container.setObjectName("MainContainer")
 
@@ -91,35 +81,48 @@ class MainWindow(QWidget):
         container_layout.setSpacing(12)
 
         # -------------------------------------------------------------
-        # 1. Top Header Bar (Perfectly Centered @L8PIEST & Single Close 'X' Button)
+        # 1. Top Header Bar (Perfectly Centered @L8PIEST via Symmetric Side Containers)
         # -------------------------------------------------------------
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(6)
+        header_layout.setSpacing(0)
 
-        # Left Back to Hub Button
-        self.btn_back_hub = QPushButton("◄ CENTRAL", self.main_container)
+        # Left Container (Fixed width 132px to balance Right Container)
+        left_controls = QWidget(self.main_container)
+        left_controls.setFixedSize(132, 30)
+        left_layout = QHBoxLayout(left_controls)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(6)
+        left_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+        self.btn_back_hub = QPushButton("◄ CENTRAL", left_controls)
         self.btn_back_hub.setObjectName("HubReturnButton")
         self.btn_back_hub.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_back_hub.setToolTip("Voltar para a Central de Softwares")
         self.btn_back_hub.clicked.connect(self._on_return_hub_clicked)
-        header_layout.addWidget(self.btn_back_hub)
+        left_layout.addWidget(self.btn_back_hub)
 
-        # Left Pin Button for FL Studio Always-on-Top mode (28x28)
-        self.btn_pin = QPushButton("📌", self.main_container)
+        self.btn_pin = QPushButton("📌", left_controls)
         self.btn_pin.setObjectName("PinButton")
         self.btn_pin.setFixedSize(28, 28)
         self.btn_pin.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_pin.setToolTip("Fixar Janela no Topo (Modo FL Studio)")
         self.btn_pin.setStyleSheet("color: #8E8EA0; font-size: 13px; border: none; background: transparent;")
         self.btn_pin.clicked.connect(self.toggle_always_on_top)
-        header_layout.addWidget(self.btn_pin)
+        left_layout.addWidget(self.btn_pin)
 
-        # Centered Header Tag
-        self.header_tag = QLabel('<a href="https://www.instagram.com/l8piest/" style="color: #8A2BE2; text-decoration: none;">@L8PIEST</a>', self.main_container)
+        header_layout.addWidget(left_controls)
+
+        # Centered Header Tag (100% Geometrically Centered)
+        self.header_tag = QLabel(
+            '<a href="https://www.instagram.com/l8piest/" style="color: #8A2BE2; text-decoration: none;">@L8PIEST</a>',
+            self.main_container
+        )
         self.header_tag.setObjectName("HeaderTag")
+        self.header_tag.setFixedHeight(30)
         self.header_tag.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.header_tag.setOpenExternalLinks(True)
+        self.header_tag.setCursor(Qt.CursorShape.PointingHandCursor)
         if self.username or self.passkey:
             tooltip_items = []
             if self.username:
@@ -127,16 +130,24 @@ class MainWindow(QWidget):
             if self.passkey:
                 tooltip_items.append(f"Passkey Ativa: {self.passkey}")
             self.header_tag.setToolTip("\n".join(tooltip_items))
-        header_layout.addWidget(self.header_tag, 1)
+        header_layout.addWidget(self.header_tag, 1, Qt.AlignmentFlag.AlignCenter)
 
-        # Close Button 'X'
-        self.btn_close = QPushButton("✕", self.main_container)
+        # Right Container (Fixed width 132px to match Left Container)
+        right_controls = QWidget(self.main_container)
+        right_controls.setFixedSize(132, 30)
+        right_layout = QHBoxLayout(right_controls)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        self.btn_close = QPushButton("✕", right_controls)
         self.btn_close.setObjectName("CloseButton")
         self.btn_close.setFixedSize(28, 28)
         self.btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_close.setToolTip("Fechar Aplicação")
         self.btn_close.clicked.connect(self.close)
-        header_layout.addWidget(self.btn_close)
+        right_layout.addWidget(self.btn_close)
+
+        header_layout.addWidget(right_controls)
 
         container_layout.addLayout(header_layout)
 
@@ -278,7 +289,7 @@ class MainWindow(QWidget):
         self.btn_rename.setCursor(Qt.CursorShape.PointingHandCursor)
 
         self.rename_menu = QMenu(self.btn_rename)
-        
+
         # Opção 1: "Adicionar ambos" (Destaque visual com marcador ✦)
         action_ambos = QAction("✦ Adicionar ambos (BPM + TOM)", self.rename_menu)
         action_ambos.triggered.connect(lambda: self.executar_renomeacao("ambos"))
@@ -400,7 +411,7 @@ class MainWindow(QWidget):
         if len(top_candidatos) >= 2:
             score1 = top_candidatos[0].get("score", 0.0)
             score2 = top_candidatos[1].get("score", 0.0)
-            
+
             if (score1 - score2) < 0.08 and score2 > 0.4:
                 alt_key = top_candidatos[1].get("key_name", "")
                 self.secondary_key_label.setText(f"Alternativa Provável: {alt_key}")
@@ -512,7 +523,6 @@ class MainWindow(QWidget):
             self.current_result["file_name"] = novo_nome
 
             # Atualiza os metadados na interface
-            from src.worker import formatar_duracao
             dur_str = formatar_duracao(self.current_result.get("duration_sec", 0.0))
             self.metadata_label.setText(f"Arquivo: {novo_nome}   |   Duração: {dur_str}")
 

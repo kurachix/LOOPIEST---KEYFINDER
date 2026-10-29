@@ -257,6 +257,7 @@ def baixar_e_converter_audio(
         ffmpeg_cmd = [
             ffmpeg_exe,
             "-y",
+            "-threads", "0",
             "-i", temp_downloaded_file,
             *codec_args,
             "-metadata", f"title={raw_title}",
@@ -300,18 +301,28 @@ def baixar_e_converter_audio(
         # Se o produtor ativou a integração automática com o KeyFinder (BPM + Tom)
         if auto_keyfinder:
             verificar_cancelamento()
-            emitir_progresso(90, "Detectando BPM e Tonalidade (Motor KeyFinder)...")
+            emitir_progresso(90, "Detectando BPM e Tonalidade (Motor SIMD Paralelo)...")
             try:
-                from src.audio_analyzer import carregar_audio, calcular_bpm, ranquear_notas_em_memoria
+                from concurrent.futures import ThreadPoolExecutor
+                from src.audio_analyzer import (
+                    carregar_audio,
+                    obter_duracao_real_arquivo,
+                    calcular_bpm,
+                    ranquear_notas_em_memoria
+                )
                 from src.key_detector import descobrir_tom, obter_escala_relativa
 
                 y, sr = carregar_audio(output_path)
                 if duration_sec <= 0:
-                    duration_sec = round(len(y) / float(sr), 2)
+                    duration_sec = obter_duracao_real_arquivo(output_path, fallback_sec=round(len(y) / float(sr), 2))
                     resultado["duration_sec"] = duration_sec
 
-                bpm = calcular_bpm(y, sr)
-                ranking = ranquear_notas_em_memoria(y, sr, top_n=8)
+                with ThreadPoolExecutor(max_workers=2) as pool:
+                    fut_bpm = pool.submit(calcular_bpm, y, sr)
+                    fut_rank = pool.submit(ranquear_notas_em_memoria, y, sr, 8)
+                    bpm = fut_bpm.result()
+                    ranking = fut_rank.result()
+
                 key_str, _ = descobrir_tom(ranking, detalhado=True)
                 detected_key = key_str.replace("Key: ", "")
                 rel_key = obter_escala_relativa(detected_key)

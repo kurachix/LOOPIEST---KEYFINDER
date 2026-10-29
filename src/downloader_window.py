@@ -9,7 +9,7 @@ import subprocess
 from PySide6.QtCore import Qt, QPoint, Signal
 from PySide6.QtGui import QPixmap, QColor, QIcon, QGuiApplication
 from PySide6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
     QPushButton, QLineEdit, QProgressBar, QGraphicsDropShadowEffect,
     QStackedWidget, QFrame, QFileDialog, QCheckBox, QButtonGroup
 )
@@ -88,35 +88,48 @@ class DownloaderWindow(QWidget):
         container_layout.setSpacing(10)
 
         # -------------------------------------------------------------
-        # 1. Top Header Bar (◄ CENTRAL, Pin, @L8PIEST, Close 'X')
+        # 1. Top Header Bar (Perfectly Centered @L8PIEST via Symmetric Side Containers)
         # -------------------------------------------------------------
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(6)
+        header_layout.setSpacing(0)
 
-        self.btn_back_hub = QPushButton("◄ CENTRAL", self.main_container)
+        # Left Container (Fixed width 132px to balance Right Container)
+        left_controls = QWidget(self.main_container)
+        left_controls.setFixedSize(132, 30)
+        left_layout = QHBoxLayout(left_controls)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(6)
+        left_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+        self.btn_back_hub = QPushButton("◄ CENTRAL", left_controls)
         self.btn_back_hub.setObjectName("HubReturnButton")
         self.btn_back_hub.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_back_hub.setToolTip("Voltar para a Central de Softwares")
         self.btn_back_hub.clicked.connect(self._on_return_hub_clicked)
-        header_layout.addWidget(self.btn_back_hub)
+        left_layout.addWidget(self.btn_back_hub)
 
-        self.btn_pin = QPushButton("📌", self.main_container)
+        self.btn_pin = QPushButton("📌", left_controls)
         self.btn_pin.setObjectName("PinButton")
         self.btn_pin.setFixedSize(28, 28)
         self.btn_pin.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_pin.setToolTip("Fixar Janela no Topo (Modo FL Studio)")
         self.btn_pin.setStyleSheet("color: #8E8EA0; font-size: 13px; border: none; background: transparent;")
         self.btn_pin.clicked.connect(self.toggle_always_on_top)
-        header_layout.addWidget(self.btn_pin)
+        left_layout.addWidget(self.btn_pin)
 
+        header_layout.addWidget(left_controls)
+
+        # Centered Header Tag (100% Geometrically Centered)
         self.header_tag = QLabel(
             '<a href="https://www.instagram.com/l8piest/" style="color: #8A2BE2; text-decoration: none;">@L8PIEST</a>',
             self.main_container
         )
         self.header_tag.setObjectName("HeaderTag")
+        self.header_tag.setFixedHeight(30)
         self.header_tag.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.header_tag.setOpenExternalLinks(True)
+        self.header_tag.setCursor(Qt.CursorShape.PointingHandCursor)
         if self.username or self.passkey:
             tooltip_items = []
             if self.username:
@@ -124,15 +137,24 @@ class DownloaderWindow(QWidget):
             if self.passkey:
                 tooltip_items.append(f"Passkey Ativa: {self.passkey}")
             self.header_tag.setToolTip("\n".join(tooltip_items))
-        header_layout.addWidget(self.header_tag, 1)
+        header_layout.addWidget(self.header_tag, 1, Qt.AlignmentFlag.AlignCenter)
 
-        self.btn_close = QPushButton("✕", self.main_container)
+        # Right Container (Fixed width 132px to match Left Container)
+        right_controls = QWidget(self.main_container)
+        right_controls.setFixedSize(132, 30)
+        right_layout = QHBoxLayout(right_controls)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        self.btn_close = QPushButton("✕", right_controls)
         self.btn_close.setObjectName("CloseButton")
         self.btn_close.setFixedSize(28, 28)
         self.btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_close.setToolTip("Fechar Aplicação")
         self.btn_close.clicked.connect(self.close)
-        header_layout.addWidget(self.btn_close)
+        right_layout.addWidget(self.btn_close)
+
+        header_layout.addWidget(right_controls)
 
         container_layout.addLayout(header_layout)
 
